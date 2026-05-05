@@ -38,7 +38,7 @@ func TestSessionManagerPollUserHandlesExpiryOnce(t *testing.T) {
 	isWithinAllowedHoursFunc = func(AllowedHours) bool { return true }
 
 	logDir := t.TempDir()
-	mgr := NewSessionManager(cfg, store, nil, NewActivityLog(logDir))
+	mgr := NewSessionManager(cfg, "", store, nil, NewActivityLog(logDir))
 
 	mgr.pollUser(cfg.Users[0])
 	mgr.pollUser(cfg.Users[0])
@@ -147,7 +147,7 @@ func TestSessionManagerSetTimeUnlocksPositiveTime(t *testing.T) {
 	}
 	isWithinAllowedHoursFunc = func(AllowedHours) bool { return false }
 
-	mgr := NewSessionManager(cfg, store, nil, nil)
+	mgr := NewSessionManager(cfg, "", store, nil, nil)
 	if _, err := mgr.SetTime("bob", 15); err != nil {
 		t.Fatalf("SetTime: %v", err)
 	}
@@ -188,7 +188,7 @@ func TestAdminCommandsUnlockSetsPositiveTime(t *testing.T) {
 	}
 	isWithinAllowedHoursFunc = func(AllowedHours) bool { return true }
 
-	mgr := NewSessionManager(cfg, store, nil, nil)
+	mgr := NewSessionManager(cfg, "", store, nil, nil)
 	text, err := NewAdminCommands(cfg, mgr).Unlock([]string{"bob", "15m"})
 	if err != nil {
 		t.Fatalf("Unlock: %v", err)
@@ -252,13 +252,62 @@ func TestStartupUnlock(t *testing.T) {
 			}
 			isWithinAllowedHoursFunc = func(AllowedHours) bool { return tc.withinHours }
 
-			mgr := NewSessionManager(cfg, store, nil, nil)
+			mgr := NewSessionManager(cfg, "", store, nil, nil)
 			mgr.startupUnlock()
 
 			if unlocks != tc.wantUnlocks {
 				t.Fatalf("unlocks = %d, want %d", unlocks, tc.wantUnlocks)
 			}
 		})
+	}
+}
+
+func TestPollPicksUpStoreChangesFromDisk(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "usage.json")
+	store, err := NewUsageStore(path)
+	if err != nil {
+		t.Fatalf("NewUsageStore: %v", err)
+	}
+	if err := store.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	cfg := &Config{
+		Users: []UserConfig{{
+			Name:              "bob",
+			DailyLimitMinutes: 60,
+			AllowedHours:      AllowedHours{Start: 8, End: 18},
+		}},
+	}
+
+	restore := stubSessionFuncs()
+	defer restore()
+
+	var locks int
+	findUserSessionsFunc = func(string) []string { return []string{"1"} }
+	getUserSessionStatusFunc = func(string) string { return "active" }
+	lockOutUserFunc = func(string, []string) error { locks++; return nil }
+	sendNotificationFunc = func(string, string) {}
+	sendTTSFunc = func(string, string, string) {}
+	isWithinAllowedHoursFunc = func(AllowedHours) bool { return false }
+
+	mgr := NewSessionManager(cfg, "", store, nil, nil)
+
+	// CLI writes an override directly to the usage file on disk.
+	cliStore, err := NewUsageStore(path)
+	if err != nil {
+		t.Fatalf("cli NewUsageStore: %v", err)
+	}
+	cliStore.SetOverride("bob", time.Now().Add(time.Hour))
+	if err := cliStore.Save(); err != nil {
+		t.Fatalf("cli Save: %v", err)
+	}
+
+	// poll() should reload from disk and respect the override.
+	mgr.poll()
+
+	if locks != 0 {
+		t.Fatalf("locks = %d, want 0 — override should prevent lock", locks)
 	}
 }
 
@@ -287,7 +336,7 @@ func TestAdminCommandsLockPositiveDurationCompatibilityAlias(t *testing.T) {
 	}
 	isWithinAllowedHoursFunc = func(AllowedHours) bool { return true }
 
-	mgr := NewSessionManager(cfg, store, nil, nil)
+	mgr := NewSessionManager(cfg, "", store, nil, nil)
 	text, err := NewAdminCommands(cfg, mgr).Lock([]string{"bob", "15m"})
 	if err != nil {
 		t.Fatalf("Lock positive duration: %v", err)

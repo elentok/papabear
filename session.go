@@ -33,15 +33,17 @@ var (
 
 type SessionManager struct {
 	cfg        *Config
+	configPath string
 	store      *UsageStore
 	bot        *Bot
 	actLog     *ActivityLog
 	lastStatus map[string]string
 }
 
-func NewSessionManager(cfg *Config, store *UsageStore, bot *Bot, actLog *ActivityLog) *SessionManager {
+func NewSessionManager(cfg *Config, configPath string, store *UsageStore, bot *Bot, actLog *ActivityLog) *SessionManager {
 	return &SessionManager{
 		cfg:        cfg,
+		configPath: configPath,
 		store:      store,
 		bot:        bot,
 		actLog:     actLog,
@@ -64,6 +66,15 @@ func (m *SessionManager) Run(ctx context.Context) {
 }
 
 func (m *SessionManager) poll() {
+	if m.configPath != "" {
+		if err := m.cfg.Reload(m.configPath); err != nil {
+			log.Printf("session: reload config: %v", err)
+		}
+	}
+	if err := m.store.Reload(); err != nil {
+		log.Printf("session: reload store: %v", err)
+	}
+
 	newDay := m.store.ResetIfNewDay()
 	if newDay {
 		// Unlock accounts at day reset if within allowed hours

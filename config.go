@@ -123,11 +123,27 @@ func (c *Config) getUser(name string) *UserConfig {
 	return nil
 }
 
-// saveConfig writes the config back to disk.
+// save writes the config to disk atomically.
 func (c *Config) save(path string) error {
 	data, err := yaml.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("marshalling config: %w", err)
 	}
-	return os.WriteFile(path, data, 0640)
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0640); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
+}
+
+// Reload re-reads the config from disk and updates this object in place.
+// The caller's pointer remains valid, so the HTTP server and session manager
+// both see the new values without pointer swaps.
+func (c *Config) Reload(path string) error {
+	fresh, err := loadConfig(path)
+	if err != nil {
+		return err
+	}
+	*c = *fresh
+	return nil
 }

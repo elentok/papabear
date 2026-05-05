@@ -173,6 +173,15 @@ func (s *UsageStore) Save() error {
 	return s.save()
 }
 
+// Reload re-reads the store from disk, replacing in-memory state with what
+// the CLI wrote. Call this at the start of each poll so admin commands
+// (unlock, give, hours) take effect within one poll interval.
+func (s *UsageStore) Reload() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.load()
+}
+
 func (s *UsageStore) IsExpiryHandled(user string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()

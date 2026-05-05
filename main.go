@@ -91,7 +91,7 @@ func runDaemon() {
 	}
 
 	actLog := NewActivityLog(logDir)
-	mgr := NewSessionManager(cfg, store, nil, actLog)
+	mgr := NewSessionManager(cfg, configPath, store, nil, actLog)
 	mgr.startupUnlock()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -295,7 +295,7 @@ func newAdminCommands() (*AdminCommands, error) {
 		return nil, fmt.Errorf("usage store: %w", err)
 	}
 
-	return NewAdminCommands(cfg, NewSessionManager(cfg, store, nil, NewActivityLog(logDir))), nil
+	return NewAdminCommands(cfg, NewSessionManager(cfg, "", store, nil, NewActivityLog(logDir))), nil
 }
 
 func runAdminCommand(command string, args []string) {
