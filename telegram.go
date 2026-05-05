@@ -97,6 +97,7 @@ func (b *Bot) handleGive(chatID int64, args []string) {
 }
 
 func (b *Bot) handleLock(chatID int64, args []string) {
+	log.Printf("session: lock command from telegram, args: %v", args)
 	text, err := NewAdminCommands(b.cfg, b.mgr).Lock(args)
 	if err != nil {
 		b.send(chatID, fmt.Sprintf("Failed to apply command: %v", err))

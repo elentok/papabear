@@ -104,7 +104,7 @@ func (m *SessionManager) pollUser(u UserConfig) {
 	if !isWithinAllowedHoursFunc(u.AllowedHours) && !hasOverride {
 		sessions := findUserSessionsFunc(u.Name)
 		if len(sessions) > 0 {
-			log.Printf("session: %s outside allowed hours, locking", u.Name)
+			log.Printf("session: locking %s. Reason: outside allowed hours", u.Name)
 			lockOutUserFunc(u.Name, sessions)
 			m.logTransition(u.Name, "locked")
 		}
@@ -124,7 +124,7 @@ func (m *SessionManager) pollUser(u UserConfig) {
 	expired := ut.RemainingSeconds <= 0 && len(sessions) > 0
 	if expired {
 		if !m.store.IsExpiryHandled(u.Name) {
-			log.Printf("session: %s time expired, locking", u.Name)
+			log.Printf("session: locking %s. Reason: time limit reached", u.Name)
 			msg := "Your screen time is up!"
 			sendNotificationFunc(u.Name, msg)
 			sendTTSFunc(u.Name, msg, m.cfg.TTSModel())
@@ -233,6 +233,7 @@ func (m *SessionManager) SetTime(user string, minutes int) (UserTime, error) {
 
 // LockUser terminates all sessions and locks the account.
 func (m *SessionManager) LockUser(user string) error {
+	log.Printf("session: locking %s. Reason: admin command", user)
 	return lockOutUserFunc(user, findUserSessionsFunc(user))
 }
 
