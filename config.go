@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"syscall"
 
 	"gopkg.in/yaml.v3"
 )
@@ -132,6 +133,13 @@ func (c *Config) save(path string) error {
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, data, 0640); err != nil {
 		return err
+	}
+	// Preserve ownership of the original so the daemon can still read it
+	// after the rename (the tmp is created by root via sudo).
+	if fi, err := os.Stat(path); err == nil {
+		if st, ok := fi.Sys().(*syscall.Stat_t); ok {
+			_ = os.Chown(tmp, int(st.Uid), int(st.Gid))
+		}
 	}
 	return os.Rename(tmp, path)
 }
