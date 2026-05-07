@@ -129,6 +129,7 @@ func runDaemon() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	<-sig
 	log.Println("shutting down")
+	mgr.shutdownUnlock()
 	mgr.LogShutdown()
 	cancel()
 }

@@ -256,6 +256,17 @@ func (m *SessionManager) logTransition(user, status string) {
 	}
 }
 
+// shutdownUnlock unlocks all user accounts so they can log back in after
+// the service restarts or the machine reboots.
+func (m *SessionManager) shutdownUnlock() {
+	for _, u := range m.cfg.Users {
+		log.Printf("session: unlock %s on shutdown", u.Name)
+		if err := unlockAccountFunc(u.Name); err != nil {
+			log.Printf("session: shutdown unlock %s: %v", u.Name, err)
+		}
+	}
+}
+
 // startupUnlock unlocks user accounts that are currently eligible to log in.
 // This recovers from the case where the computer was shut down while a user
 // was locked (e.g. ran out of time), leaving the OS-level account lock in
