@@ -71,6 +71,7 @@ func TestSessionManagerPollUserHandlesExpiryOnce(t *testing.T) {
 func stubSessionFuncs() func() {
 	prevFindSessions := findUserSessionsFunc
 	prevGetStatus := getUserSessionStatusFunc
+	prevGetAccountStatus := getAccountStatusFunc
 	prevLockOut := lockOutUserFunc
 	prevUnlock := unlockAccountFunc
 	prevNotify := sendNotificationFunc
@@ -79,9 +80,12 @@ func stubSessionFuncs() func() {
 	prevNewLockCmd := newLockAccountCmdFunc
 	prevNewUnlockCmd := newUnlockAccountCmdFunc
 
+	getAccountStatusFunc = func(string) string { return "never expires" }
+
 	return func() {
 		findUserSessionsFunc = prevFindSessions
 		getUserSessionStatusFunc = prevGetStatus
+		getAccountStatusFunc = prevGetAccountStatus
 		lockOutUserFunc = prevLockOut
 		unlockAccountFunc = prevUnlock
 		sendNotificationFunc = prevNotify

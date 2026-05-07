@@ -94,6 +94,7 @@ func handleStatus(w http.ResponseWriter, r *http.Request, cfg *Config, mgr *Sess
 		"remaining_seconds": ut.RemainingSeconds,
 		"used_seconds":      ut.UsedSeconds,
 		"session_status":    ut.SessionStatus,
+		"account_status":    ut.AccountStatus,
 	}
 	if u := cfg.getUser(user); u != nil {
 		resp["allowed_hours_start"] = u.AllowedHours.Start

@@ -266,6 +266,9 @@ func printStatusFromHTTP(username string, compact bool) {
 	if status, ok := data["session_status"]; ok {
 		fmt.Printf("Session: %s\n", status)
 	}
+	if acct, ok := data["account_status"]; ok {
+		fmt.Printf("Account: %s\n", acct)
+	}
 
 	if activity, ok := data["activity"]; ok && activity != nil {
 		if entries, ok := activity.([]any); ok && len(entries) > 0 {

@@ -6,6 +6,7 @@ type UserTime struct {
 	RemainingSeconds int
 	UsedSeconds      int
 	SessionStatus    string // "active", "locked", "idle", "offline"
+	AccountStatus    string // "expired", "never expires", "failed to check expiration"
 }
 
 func (t UserTime) RemainingStr() string {

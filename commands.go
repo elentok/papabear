@@ -92,11 +92,11 @@ func (c *AdminCommands) StatusForUser(user string) (string, error) {
 	}
 
 	u := c.cfg.getUser(user)
-	text := fmt.Sprintf("%s has %s remaining (used %s today)\nAllowed hours: %s - %s\nSession: %s",
+	text := fmt.Sprintf("%s has %s remaining (used %s today)\nAllowed hours: %s - %s\nSession: %s\nAccount: %s",
 		capitalize(user), ut.RemainingStr(), ut.UsedStr(),
 		formatHour(u.AllowedHours.Start, u.AllowedHours.StartMinute),
 		formatHour(u.AllowedHours.End, u.AllowedHours.EndMinute),
-		ut.SessionStatus)
+		ut.SessionStatus, ut.AccountStatus)
 
 	if c.mgr.actLog != nil {
 		entries, err := c.mgr.actLog.ReadDay(user, today())

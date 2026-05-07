@@ -18,6 +18,7 @@ const pollInterval = 10 * time.Second
 var (
 	findUserSessionsFunc     = findUserSessions
 	getUserSessionStatusFunc = getUserSessionStatus
+	getAccountStatusFunc     = getAccountStatus
 	lockOutUserFunc          = lockOutUser
 	unlockAccountFunc        = unlockAccount
 	sendNotificationFunc     = sendNotification
@@ -159,6 +160,7 @@ func (m *SessionManager) GetUserTime(user string) (UserTime, error) {
 	}
 	ut := m.store.GetUserTime(user, u.DailyLimitMinutes*60)
 	ut.SessionStatus = getUserSessionStatusFunc(user)
+	ut.AccountStatus = getAccountStatusFunc(user)
 	return ut, nil
 }
 
@@ -378,6 +380,25 @@ func unlockAccount(username string) error {
 		return fmt.Errorf("chage -E -1 %s: %w", username, err)
 	}
 	return nil
+}
+
+func getAccountStatus(username string) string {
+	out, err := exec.Command("sudo", "chage", "-l", username).Output()
+	if err != nil {
+		log.Printf("session: chage -l %s: %v", username, err)
+		return "failed to check expiration"
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		k, v, ok := strings.Cut(line, ":")
+		if ok && strings.TrimSpace(k) == "Account expires" {
+			if strings.TrimSpace(v) == "never" {
+				return "never expires"
+			}
+			return "expired"
+		}
+	}
+	log.Printf("session: chage -l %s: 'Account expires' line not found in output:\n%s", username, out)
+	return "failed to check expiration (line not found in output)"
 }
 
 func isWithinAllowedHours(hours AllowedHours) bool {
