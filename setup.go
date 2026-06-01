@@ -135,13 +135,28 @@ func installAptDependencies() error {
 func installPiperTTS() error {
 	binPath := filepath.Join(piperVenvPath, "bin", "piper")
 	if _, err := os.Stat(binPath); err == nil {
-		return nil // already installed
+		if piperWorks(binPath) {
+			return nil // already installed and working
+		}
+		// venv is broken (e.g. python minor version changed on OS upgrade,
+		// leaving site-packages under a path the new interpreter ignores).
+		// Remove it so it gets rebuilt against the current python3.
+		fmt.Print("(rebuilding broken venv) ")
+		if err := os.RemoveAll(piperVenvPath); err != nil {
+			return fmt.Errorf("removing broken venv %s: %w", piperVenvPath, err)
+		}
 	}
 	if err := runSetupCommand("python3", "-m", "venv", piperVenvPath); err != nil {
 		return err
 	}
 	pipPath := filepath.Join(piperVenvPath, "bin", "pip")
 	return runSetupCommand(pipPath, "install", "--quiet", "piper-tts")
+}
+
+// piperWorks reports whether the piper binary can actually import its module.
+// Returns false when the venv is stale (e.g. after a python upgrade).
+func piperWorks(binPath string) bool {
+	return exec.Command(binPath, "--help").Run() == nil
 }
 
 func installPiperVoice() error {
