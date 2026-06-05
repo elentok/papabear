@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -139,6 +140,34 @@ users:
 	// The top-level default still gets its own fallback (unrelated to overrides).
 	if (u.AllowedHours != AllowedHours{Start: 8, End: 18}) {
 		t.Fatalf("default = %+v, want {8 0 18 0}", u.AllowedHours)
+	}
+}
+
+func TestShowConfigRendersCompiledDefaults(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte(`
+machine_name: "test"
+telegram:
+  bot_token: "token"
+  allowed_chat_ids: [123]
+users:
+  - name: "bob"
+`), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	out, err := showConfig(path)
+	if err != nil {
+		t.Fatalf("showConfig: %v", err)
+	}
+	// Defaults applied by loadConfig should appear in the rendered output.
+	for _, want := range []string{
+		"listen_addr: 127.0.0.1:3847",
+		"daily_limit_minutes: 300",
+		"thresholds:",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("showConfig output missing %q\n--- got ---\n%s", want, out)
+		}
 	}
 }
 

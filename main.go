@@ -47,6 +47,8 @@ func main() {
 		runAdminCommand("hours", os.Args[2:])
 	case "say":
 		runAdminCommand("say", os.Args[2:])
+	case "config":
+		runConfig(os.Args[2:])
 	case "check-login":
 		os.Exit(runCheckLogin())
 	default:
@@ -70,6 +72,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  status       Show remaining time for the current or target user")
 	fmt.Fprintln(os.Stderr, "  hours        View or set allowed hours for a user")
 	fmt.Fprintln(os.Stderr, "  say          Send a spoken and desktop message to a user")
+	fmt.Fprintln(os.Stderr, "  config       Edit (config edit) or show the compiled config (config show)")
 	fmt.Fprintln(os.Stderr, "  check-login  Check if a user is allowed to log in (used by PAM)")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "User commands:")

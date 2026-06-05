@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 	"syscall"
 
 	"gopkg.in/yaml.v3"
@@ -90,13 +92,82 @@ func loadConfig(path string) (*Config, error) {
 		}
 	}
 	if len(cfg.Notifications.Thresholds) == 0 {
-		cfg.Notifications.Thresholds = []int{30, 15, 5, 1}
+		cfg.Notifications.Thresholds = []int{30, 15, 5, 2, 1}
 	}
 	if cfg.TTS.Model == "" {
 		cfg.TTS.Model = defaultTTSModel
 	}
 
 	return &cfg, nil
+}
+
+// runConfig dispatches the `config` subcommand (edit or show).
+func runConfig(args []string) {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "Usage: screentimectl config <edit|show>")
+		os.Exit(1)
+	}
+	switch args[0] {
+	case "edit":
+		runConfigEdit()
+	case "show":
+		runConfigShow()
+	default:
+		fmt.Fprintf(os.Stderr, "unknown config subcommand: %s\n", args[0])
+		fmt.Fprintln(os.Stderr, "Usage: screentimectl config <edit|show>")
+		os.Exit(1)
+	}
+}
+
+// runConfigEdit opens the config file in $EDITOR, then validates the result so
+// a typo (e.g. a bad day name) is caught before the daemon reloads it.
+func runConfigEdit() {
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vi"
+	}
+	// $EDITOR may carry arguments (e.g. "code -w", "emacsclient -t").
+	parts := strings.Fields(editor)
+	args := append(parts[1:], configPath)
+
+	cmd := exec.Command(parts[0], args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "editor: %v\n", err)
+		os.Exit(1)
+	}
+
+	if _, err := loadConfig(configPath); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: config is invalid: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("Config is valid.")
+}
+
+// runConfigShow prints the compiled config: the user's file with all defaults
+// applied — i.e. exactly what the daemon uses.
+func runConfigShow() {
+	out, err := showConfig(configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "config: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Print(out)
+}
+
+// showConfig loads the config (applying defaults) and renders it back to YAML.
+func showConfig(path string) (string, error) {
+	cfg, err := loadConfig(path)
+	if err != nil {
+		return "", err
+	}
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return "", fmt.Errorf("marshalling config: %w", err)
+	}
+	return string(data), nil
 }
 
 func (c *Config) TTSModel() string {
