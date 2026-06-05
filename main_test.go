@@ -16,7 +16,7 @@ func TestFormatStatusSummary(t *testing.T) {
 	}
 }
 
-func TestParseStatusArgs(t *testing.T) {
+func TestStatusCommandParsing(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        []string
@@ -34,18 +34,30 @@ func TestParseStatusArgs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotCompact, gotUser, err := parseStatusArgs(tt.args)
+			cmd := newStatusCmd()
+			if err := cmd.Flags().Parse(tt.args); err != nil {
+				t.Fatalf("Parse flags: %v", err)
+			}
+			gotCompact, err := cmd.Flags().GetBool("compact")
 			if tt.wantErr {
-				if err == nil {
-					t.Fatal("parseStatusArgs succeeded, want error")
+				if err == nil && cmd.Args(cmd, cmd.Flags().Args()) == nil {
+					t.Fatal("status args succeeded, want error")
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("parseStatusArgs: %v", err)
+				t.Fatalf("GetBool(compact): %v", err)
+			}
+			args := cmd.Flags().Args()
+			if err := cmd.Args(cmd, args); err != nil {
+				t.Fatalf("status args: %v", err)
+			}
+			gotUser := ""
+			if len(args) == 1 {
+				gotUser = args[0]
 			}
 			if gotCompact != tt.wantCompact || gotUser != tt.wantUser {
-				t.Fatalf("parseStatusArgs = %v, %q; want %v, %q",
+				t.Fatalf("status args = %v, %q; want %v, %q",
 					gotCompact, gotUser, tt.wantCompact, tt.wantUser)
 			}
 		})

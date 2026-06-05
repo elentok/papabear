@@ -16,70 +16,10 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		usage()
+	if err := newRootCmd().Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
-	switch os.Args[1] {
-	case "run":
-		runDaemon()
-	case "setup":
-		if err := runSetup(); err != nil {
-			fmt.Fprintf(os.Stderr, "setup: %v\n", err)
-			os.Exit(1)
-		}
-	case "doctor":
-		runDoctor()
-	case "logs":
-		runLogs()
-	case "status":
-		runStatus()
-	case "ask":
-		runAsk()
-	case "give":
-		runAdminCommand("give", os.Args[2:])
-	case "lock":
-		runAdminCommand("lock", os.Args[2:])
-	case "unlock":
-		runAdminCommand("unlock", os.Args[2:])
-	case "hours":
-		runAdminCommand("hours", os.Args[2:])
-	case "say":
-		runAdminCommand("say", os.Args[2:])
-	case "config":
-		runConfig(os.Args[2:])
-	case "check-login":
-		os.Exit(runCheckLogin())
-	default:
-		fmt.Fprintf(os.Stderr, "unknown command: %s\n", os.Args[1])
-		usage()
-		os.Exit(1)
-	}
-}
-
-func usage() {
-	fmt.Fprintln(os.Stderr, "Usage: papabear <command>")
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Admin commands:")
-	fmt.Fprintln(os.Stderr, "  run          Start the daemon")
-	fmt.Fprintln(os.Stderr, "  setup        Install system dependencies (run as root)")
-	fmt.Fprintln(os.Stderr, "  doctor       Check system configuration")
-	fmt.Fprintln(os.Stderr, "  logs         Follow service logs")
-	fmt.Fprintln(os.Stderr, "  give         Add time for a user")
-	fmt.Fprintln(os.Stderr, "  lock         Lock a user's screen and account")
-	fmt.Fprintln(os.Stderr, "  unlock       Set remaining time and allow login")
-	fmt.Fprintln(os.Stderr, "  status       Show remaining time for the current or target user")
-	fmt.Fprintln(os.Stderr, "  hours        View or set allowed hours for a user")
-	fmt.Fprintln(os.Stderr, "  say          Send a spoken and desktop message to a user")
-	fmt.Fprintln(os.Stderr, "  config       Edit (config edit) or show the compiled config (config show)")
-	fmt.Fprintln(os.Stderr, "  check-login  Check if a user is allowed to log in (used by PAM)")
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "User commands:")
-	fmt.Fprintln(os.Stderr, "  status       Show your remaining screen time")
-	fmt.Fprintln(os.Stderr, "  status --compact")
-	fmt.Fprintln(os.Stderr, "               Show only remaining screen time")
-	fmt.Fprintln(os.Stderr, "  ask          Request more screen time")
 }
 
 func runDaemon() {
@@ -149,13 +89,7 @@ func runLogs() {
 
 const defaultAddr = "127.0.0.1:3847"
 
-func runStatus() {
-	compact, username, err := parseStatusArgs(os.Args[2:])
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Usage: papabear status [user] [--compact]: %v\n", err)
-		os.Exit(1)
-	}
-
+func runStatus(compact bool, username string) {
 	if username != "" {
 		runAdminStatus(username, compact)
 		return
@@ -188,22 +122,6 @@ func runStatus() {
 	}
 
 	printStatusFromHTTP(current, compact)
-}
-
-func parseStatusArgs(args []string) (bool, string, error) {
-	var compact bool
-	var username string
-	for _, arg := range args {
-		if arg == "--compact" {
-			compact = true
-			continue
-		}
-		if username != "" {
-			return false, "", fmt.Errorf("too many arguments")
-		}
-		username = arg
-	}
-	return compact, username, nil
 }
 
 func runAdminStatus(username string, compact bool) {
@@ -341,14 +259,9 @@ func formatStatusSummary(ut UserTime, compact bool) string {
 	return fmt.Sprintf("You have %s remaining (used %s today)", ut.RemainingStr(), ut.UsedStr())
 }
 
-func runAsk() {
+func runAsk(minutes string) {
 	username := currentUser()
 	addr := daemonAddr()
-
-	minutes := "15"
-	if len(os.Args) >= 3 {
-		minutes = os.Args[2]
-	}
 
 	resp, err := http.Post(
 		fmt.Sprintf("http://%s/request-more-time?user=%s&minutes=%s", addr, username, minutes),

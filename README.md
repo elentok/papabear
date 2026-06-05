@@ -2,28 +2,35 @@
 
 ![Papa Bear logo](docs/logo-512.png)
 
-Papa Bear is a daemon that lets parents remotely control screen time on Linux machines via Telegram. It tracks active session time via `loginctl`, enforces limits by locking the screen and account, and sends desktop notifications and TTS alerts when time is running low.
+Papa Bear is a daemon that lets parents remotely control screen time on Linux machines via Telegram
+or SSH. It tracks active session time via `loginctl`, enforces limits by locking the screen and
+account, and sends desktop notifications and TTS alerts when time is running low.
 
 ## Requirements
 
 - Ubuntu (systemd + systemd-logind)
 - A Telegram bot token (create one via [@BotFather](https://t.me/BotFather))
-- Runtime apt dependencies are installed by `setup`: `sudo`, `libnotify-bin`, `pulseaudio-utils`, `python3-venv`, `gnome-shell-extension-appindicator`, `python3-gi`, `gir1.2-gtk-3.0`, `gir1.2-ayatanaappindicator3-0.1`
+- Runtime apt dependencies are installed by `setup`: `sudo`, `libnotify-bin`, `pulseaudio-utils`,
+  `python3-venv`, `gnome-shell-extension-appindicator`, `python3-gi`, `gir1.2-gtk-3.0`,
+  `gir1.2-ayatanaappindicator3-0.1`
 
 ## Install
 
 1. Build or download the binary:
+
    ```sh
    go build -o papabear
    sudo cp papabear /usr/local/bin/
    ```
 
 2. Run setup (creates system user, config, sudoers, PAM rule, and systemd service):
+
    ```sh
    sudo papabear setup
    ```
 
 3. Edit the config:
+
    ```sh
    sudo nano /etc/papabear/config.yaml
    ```
@@ -43,37 +50,37 @@ machine_name: "Bob-PC"
 telegram:
   bot_token: "TOKEN"
   allowed_chat_ids:
-    - 111111111   # get this from scripts/get-chat-id.sh
+    - 111111111 # get this from scripts/get-chat-id.sh
 
 server:
   listen_addr: "127.0.0.1:3847"
 
 notifications:
-  thresholds: [30, 15, 5, 1]  # minutes remaining
+  thresholds: [30, 15, 5, 1] # minutes remaining
 
 tts:
   model: "en_US-lessac-medium"
 
 users:
   - name: "bob"
-    daily_limit_minutes: 300   # 5 hours
+    daily_limit_minutes: 300 # 5 hours
     allowed_hours:
-      start: 8                 # 8am
-      end: 18                  # 6pm
+      start: 8 # 8am
+      end: 18 # 6pm
 ```
 
 ## Telegram Commands
 
-| Command | Effect |
-|---|---|
-| `/give [bob] 30m` | Add 30 minutes to Bob's time |
-| `/give [bob] 1h30m` | Add 1.5 hours |
-| `/lock [bob]` | Lock Bob's screen and account immediately |
-| `/unlock [bob] 15m` | Set Bob's remaining time to 15 minutes and allow login |
-| `/status [bob]` | Show remaining time, used time, allowed hours, and activity timeline |
-| `/hours [bob]` | Show Bob's allowed hours |
-| `/hours [bob] 8-20` | Set allowed hours to 8am-8pm |
-| `/say [bob] Time for dinner` | Speak a message to Bob via TTS |
+| Command                      | Effect                                                               |
+| ---------------------------- | -------------------------------------------------------------------- |
+| `/give [bob] 30m`            | Add 30 minutes to Bob's time                                         |
+| `/give [bob] 1h30m`          | Add 1.5 hours                                                        |
+| `/lock [bob]`                | Lock Bob's screen and account immediately                            |
+| `/unlock [bob] 15m`          | Set Bob's remaining time to 15 minutes and allow login               |
+| `/status [bob]`              | Show remaining time, used time, allowed hours, and activity timeline |
+| `/hours [bob]`               | Show Bob's allowed hours                                             |
+| `/hours [bob] 8-20`          | Set allowed hours to 8am-8pm                                         |
+| `/say [bob] Time for dinner` | Speak a message to Bob via TTS                                       |
 
 Duration formats: `15`, `15m`, `1h`, `1h30m`.
 
@@ -107,7 +114,11 @@ papabear unlock bob 15m  # set bob's remaining time to 15 minutes and allow logi
 papabear status bob   # show bob's remaining time and activity timeline
 papabear hours bob    # show allowed hours for bob
 papabear hours bob 8-20  # set allowed hours
+papabear hours bob saturday 10-14  # set a specific day's allowed hours
 papabear say bob "Time for dinner"  # send a desktop notification and TTS message
+papabear completion bash > /etc/bash_completion.d/papabear  # generate bash completion
+papabear completion fish > ~/.config/fish/completions/papabear.fish  # generate fish completion
+papabear completion zsh > ~/.zsh/completions/_papabear  # generate shell completion
 ```
 
 For SSH/admin use, the user argument can be omitted for `give`, `lock`, `unlock`, `status`, `hours`, and `say` when there is one configured user, or when exactly one configured user is active.
