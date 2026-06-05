@@ -20,3 +20,13 @@ users:
     allowed_hours:
       start: 8
       end: 18
+    # Optional per-weekday overrides. Each listed day replaces the default
+    # allowed_hours above for that day only; unlisted days fall back to it.
+    # Day keys are lowercase full names (monday..sunday).
+    # allowed_hours_by_day:
+    #   saturday:
+    #     start: 7
+    #     end: 20
+    #   sunday:
+    #     start: 9
+    #     end: 20

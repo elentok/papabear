@@ -398,10 +398,11 @@ func runCheckLogin() int {
 	}
 
 	// Check allowed hours
-	if !isWithinAllowedHours(u.AllowedHours) {
+	hours := u.effectiveAllowedHoursNow()
+	if !isWithinAllowedHours(hours) {
 		fmt.Printf("Login allowed only between %s and %s.\n",
-			formatHour(u.AllowedHours.Start, u.AllowedHours.StartMinute),
-			formatHour(u.AllowedHours.End, u.AllowedHours.EndMinute))
+			formatHour(hours.Start, hours.StartMinute),
+			formatHour(hours.End, hours.EndMinute))
 		return 1
 	}
 

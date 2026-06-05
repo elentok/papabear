@@ -29,9 +29,10 @@ type ServerConfig struct {
 }
 
 type UserConfig struct {
-	Name              string       `yaml:"name"`
-	DailyLimitMinutes int          `yaml:"daily_limit_minutes"`
-	AllowedHours      AllowedHours `yaml:"allowed_hours"`
+	Name              string                  `yaml:"name"`
+	DailyLimitMinutes int                     `yaml:"daily_limit_minutes"`
+	AllowedHours      AllowedHours            `yaml:"allowed_hours"`
+	AllowedHoursByDay map[string]AllowedHours `yaml:"allowed_hours_by_day,omitempty"`
 }
 
 type AllowedHours struct {
@@ -78,6 +79,14 @@ func loadConfig(path string) (*Config, error) {
 		}
 		if cfg.Users[i].AllowedHours.Start == 0 && cfg.Users[i].AllowedHours.End == 0 {
 			cfg.Users[i].AllowedHours = AllowedHours{Start: 8, End: 18}
+		}
+		for day, oh := range cfg.Users[i].AllowedHoursByDay {
+			if _, err := parseWeekday(day); err != nil {
+				return nil, fmt.Errorf("user %q: allowed_hours_by_day: %w", cfg.Users[i].Name, err)
+			}
+			if oh.Start*60+oh.StartMinute >= oh.End*60+oh.EndMinute {
+				return nil, fmt.Errorf("user %q: allowed_hours_by_day[%s]: start must be before end", cfg.Users[i].Name, day)
+			}
 		}
 	}
 	if len(cfg.Notifications.Thresholds) == 0 {

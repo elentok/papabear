@@ -102,7 +102,7 @@ func (m *SessionManager) pollUser(u UserConfig) {
 	hasOverride := m.store.HasOverride(u.Name)
 
 	// Check allowed hours
-	if !isWithinAllowedHoursFunc(u.AllowedHours) && !hasOverride {
+	if !isWithinAllowedHoursFunc(u.effectiveAllowedHoursNow()) && !hasOverride {
 		sessions := findUserSessionsFunc(u.Name)
 		if len(sessions) > 0 {
 			log.Printf("session: locking %s. Reason: outside allowed hours", u.Name)
@@ -212,7 +212,7 @@ func (m *SessionManager) AddTime(user string, minutes int) (UserTime, error) {
 		return UserTime{}, fmt.Errorf("unknown user: %s", user)
 	}
 	m.store.AddBonusTime(user, minutes*60)
-	if !isWithinAllowedHoursFunc(u.AllowedHours) {
+	if !isWithinAllowedHoursFunc(u.effectiveAllowedHoursNow()) {
 		m.store.SetOverride(user, time.Now().Add(time.Duration(minutes)*time.Minute))
 	}
 	if err := unlockAccountFunc(user); err != nil {
@@ -238,7 +238,7 @@ func (m *SessionManager) SetTime(user string, minutes int) (UserTime, error) {
 	}
 	m.store.SetRemainingTime(user, minutes*60, u.DailyLimitMinutes*60)
 	if minutes > 0 {
-		if !isWithinAllowedHoursFunc(u.AllowedHours) {
+		if !isWithinAllowedHoursFunc(u.effectiveAllowedHoursNow()) {
 			m.store.SetOverride(user, time.Now().Add(time.Duration(minutes)*time.Minute))
 		}
 		if err := unlockAccountFunc(user); err != nil {
@@ -324,7 +324,7 @@ func (m *SessionManager) canUserLogin(u UserConfig) bool {
 	if m.store.HasOverride(u.Name) {
 		return true
 	}
-	if !isWithinAllowedHoursFunc(u.AllowedHours) {
+	if !isWithinAllowedHoursFunc(u.effectiveAllowedHoursNow()) {
 		return false
 	}
 	ut := m.store.GetUserTime(u.Name, u.DailyLimitMinutes*60)
