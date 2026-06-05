@@ -449,7 +449,7 @@ func sendNotification(username string, msg string) {
 		return
 	}
 	xdg := fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", uid)
-	cmd := exec.Command("sudo", "--preserve-env=XDG_RUNTIME_DIR", "-u", username, "notify-send", "Screen Time", msg)
+	cmd := exec.Command("sudo", "--preserve-env=XDG_RUNTIME_DIR", "-u", username, "notify-send", "Papa Bear", msg)
 	cmd.Env = append(os.Environ(), xdg)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Printf("session: notify-send for %s: %v\ncmd: %s\noutput: %s", username, err, cmd.Args, out)
@@ -459,8 +459,8 @@ func sendNotification(username string, msg string) {
 const (
 	defaultTTSModel = "en_US-lessac-medium"
 	piperBin        = "/usr/local/lib/piper-tts/bin/piper"
-	piperVoicesDir  = "/var/lib/screentimectl/piper-voices"
-	ttsCacheDir     = "/var/lib/screentimectl/tts-cache"
+	piperVoicesDir  = "/var/lib/papabear/piper-voices"
+	ttsCacheDir     = "/var/lib/papabear/tts-cache"
 )
 
 func ttsCachePath(model, msg string) string {

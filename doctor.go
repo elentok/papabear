@@ -27,7 +27,7 @@ func runDoctor() {
 
 	check("piper binary exists", func() error {
 		if _, err := os.Stat(piperBin); err != nil {
-			return fmt.Errorf("%s not found (run screentimectl setup)", piperBin)
+			return fmt.Errorf("%s not found (run papabear setup)", piperBin)
 		}
 		return nil
 	})
@@ -35,7 +35,7 @@ func runDoctor() {
 	check("piper voice model exists", func() error {
 		modelPath := filepath.Join(piperVoicesDir, defaultTTSModel+".onnx")
 		if _, err := os.Stat(modelPath); err != nil {
-			return fmt.Errorf("%s not found (run screentimectl setup)", modelPath)
+			return fmt.Errorf("%s not found (run papabear setup)", modelPath)
 		}
 		return nil
 	})
@@ -67,7 +67,7 @@ func runDoctor() {
 		return nil
 	})
 
-	check("config file owned by screentimectl", func() error {
+	check("config file owned by papabear", func() error {
 		info, err := os.Stat(configDir + "/config.yaml")
 		if err != nil {
 			return err
@@ -114,8 +114,8 @@ func runDoctor() {
 		if err != nil {
 			return fmt.Errorf("cannot read %s: %w", pamService, err)
 		}
-		if !strings.Contains(string(data), "screentimectl") {
-			return fmt.Errorf("screentimectl PAM rule not found in %s", pamService)
+		if !strings.Contains(string(data), "papabear") {
+			return fmt.Errorf("papabear PAM rule not found in %s", pamService)
 		}
 		return nil
 	})

@@ -4,7 +4,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o /screentimectl .
+RUN go build -o /papabear .
 
 FROM ubuntu:24.04
 
@@ -23,7 +23,7 @@ RUN echo '#!/bin/bash' > /usr/bin/espeak-ng && chmod +x /usr/bin/espeak-ng
 # Create a fake PAM file for testing
 RUN mkdir -p /etc/pam.d && echo 'auth required pam_unix.so' > /etc/pam.d/gdm-password
 
-COPY --from=build /screentimectl /usr/local/bin/screentimectl
+COPY --from=build /papabear /usr/local/bin/papabear
 
 COPY test/docker/run-tests.sh /run-tests.sh
 RUN chmod +x /run-tests.sh

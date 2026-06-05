@@ -1,3 +1,0 @@
-screentimectl ALL=(ALL) NOPASSWD: /usr/bin/loginctl
-screentimectl ALL=(ALL) NOPASSWD: /usr/bin/chage -E 0 *, /usr/bin/chage -E -1 *, /usr/bin/chage -l *
-screentimectl ALL=(ALL) NOPASSWD: SETENV: /usr/bin/notify-send, /usr/bin/paplay

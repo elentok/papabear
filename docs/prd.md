@@ -1,7 +1,7 @@
-# screentimectl PRD (MVP)
+# Papa Bear PRD (MVP)
 
 ## Overview
-screentimectl is a local daemon that enables parents to remotely control and extend screen time on Linux machines via Telegram.
+Papa Bear is a local daemon that enables parents to remotely control and extend screen time on Linux machines via Telegram.
 
 It integrates with timekpr-next for enforcement and exposes a local HTTP API for kids to request more time.
 
@@ -25,7 +25,7 @@ It integrates with timekpr-next for enforcement and exposes a local HTTP API for
 ---
 
 ## Configuration
-Path: /etc/screentimectl/config.yaml
+Path: /etc/papabear/config.yaml
 
 Example:
 
@@ -81,7 +81,7 @@ Telegram message:
 ## Setup
 
 Command:
-screentimectl setup
+papabear setup
 
 Creates:
 - system user
@@ -94,7 +94,7 @@ Creates:
 ## Doctor
 
 Command:
-screentimectl doctor
+papabear doctor
 
 Outputs checks:
 [OK]/[FAIL]
@@ -103,16 +103,16 @@ Outputs checks:
 
 ## Logging
 
-journalctl -u screentimectl
+journalctl -u papabear
 
 CLI:
-screentimectl logs
+papabear logs
 
 ---
 
 ## Systemd
 
-/etc/systemd/system/screentimectl.service
+/etc/systemd/system/papabear.service
 
 ---
 
@@ -120,7 +120,7 @@ screentimectl logs
 
 1. Copy binary
 2. Run:
-   sudo screentimectl setup
+   sudo papabear setup
 
 ---
 

@@ -1,11 +1,11 @@
 [Unit]
-Description=screentimectl daemon
+Description=Papa Bear daemon
 After=network.target
 
 [Service]
 Type=simple
-User=screentimectl
-ExecStart=/usr/local/bin/screentimectl run
+User=papabear
+ExecStart=/usr/local/bin/papabear run
 Restart=on-failure
 RestartSec=5
 

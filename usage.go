@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const usageDir = "/var/lib/screentimectl"
+const usageDir = "/var/lib/papabear"
 
 type UsageStore struct {
 	mu   sync.Mutex

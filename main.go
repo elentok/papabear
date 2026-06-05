@@ -59,7 +59,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "Usage: screentimectl <command>")
+	fmt.Fprintln(os.Stderr, "Usage: papabear <command>")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Admin commands:")
 	fmt.Fprintln(os.Stderr, "  run          Start the daemon")
@@ -121,12 +121,12 @@ func runDaemon() {
 			}
 		}
 		mgr.bot = bot
-		log.Printf("screentimectl started (machine: %s)", cfg.MachineName)
-		bot.sendAll(fmt.Sprintf("screentimectl started (machine: %s)", cfg.MachineName))
+		log.Printf("papabear started (machine: %s)", cfg.MachineName)
+		bot.sendAll(fmt.Sprintf("papabear started (machine: %s)", cfg.MachineName))
 		bot.run()
 	}()
 
-	log.Printf("screentimectl starting (machine: %s)", cfg.MachineName)
+	log.Printf("papabear starting (machine: %s)", cfg.MachineName)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
@@ -138,7 +138,7 @@ func runDaemon() {
 }
 
 func runLogs() {
-	cmd := exec.Command("journalctl", "-u", "screentimectl", "-f")
+	cmd := exec.Command("journalctl", "-u", "papabear", "-f")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -152,7 +152,7 @@ const defaultAddr = "127.0.0.1:3847"
 func runStatus() {
 	compact, username, err := parseStatusArgs(os.Args[2:])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Usage: screentimectl status [user] [--compact]: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Usage: papabear status [user] [--compact]: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -368,7 +368,7 @@ func runAsk() {
 }
 
 func daemonAddr() string {
-	if addr := os.Getenv("SCREENTIMECTL_ADDR"); addr != "" {
+	if addr := os.Getenv("PAPABEAR_ADDR"); addr != "" {
 		return addr
 	}
 	return defaultAddr

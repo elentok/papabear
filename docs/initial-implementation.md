@@ -12,14 +12,14 @@
 ## Project Structure
 
 ```
-screentimectl/
+papabear/
 ├── main.go              # entrypoint, subcommand dispatch
-├── config.go            # config loading from /etc/screentimectl/config.yaml
+├── config.go            # config loading from /etc/papabear/config.yaml
 ├── timekpr.go           # timekpra CLI wrapper (exec)
 ├── telegram.go          # bot setup, command parsing, message sending
 ├── http.go              # HTTP API server
-├── setup.go             # `screentimectl setup` command
-├── doctor.go            # `screentimectl doctor` command
+├── setup.go             # `papabear setup` command
+├── doctor.go            # `papabear doctor` command
 ├── go.mod
 ├── go.sum
 └── docs/
@@ -31,13 +31,13 @@ screentimectl/
 
 ### Step 1: Project scaffolding
 
-- `go mod init screentimectl`
+- `go mod init papabear`
 - Add dependencies
 - Create `main.go` with subcommand dispatch (`run`, `setup`, `doctor`, `logs`)
 
 ### Step 2: Config
 
-- Parse `/etc/screentimectl/config.yaml`
+- Parse `/etc/papabear/config.yaml`
 - Struct:
   ```go
   type Config struct {
@@ -100,10 +100,10 @@ screentimectl/
 ### Step 7: `setup` command
 
 - Must run as root
-- Create system user `screentimectl` (if not exists)
-- Create config dir `/etc/screentimectl/` with example config
-- Create sudoers rule `/etc/sudoers.d/screentimectl` allowing the system user to run `timekpra` without password
-- Install systemd service file to `/etc/systemd/system/screentimectl.service`
+- Create system user `papabear` (if not exists)
+- Create config dir `/etc/papabear/` with example config
+- Create sudoers rule `/etc/sudoers.d/papabear` allowing the system user to run `timekpra` without password
+- Install systemd service file to `/etc/systemd/system/papabear.service`
 - `systemctl daemon-reload`
 
 ### Step 8: `doctor` command
@@ -117,7 +117,7 @@ screentimectl/
 
 ### Step 9: `logs` command
 
-- Exec `journalctl -u screentimectl -f` (follow mode)
+- Exec `journalctl -u papabear -f` (follow mode)
 
 ## Duration Parsing
 
@@ -134,13 +134,13 @@ Accept formats: `15` (minutes), `15m` (minutes), `1h` (hours), `1h30m`. Default 
 
 ```ini
 [Unit]
-Description=screentimectl daemon
+Description=Papa Bear daemon
 After=network.target
 
 [Service]
 Type=simple
-User=screentimectl
-ExecStart=/usr/local/bin/screentimectl run
+User=papabear
+ExecStart=/usr/local/bin/papabear run
 Restart=on-failure
 RestartSec=5
 

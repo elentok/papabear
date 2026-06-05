@@ -7,11 +7,11 @@ timekpr-next doesn't properly pause its timer when the screen is locked, so the 
 ## Overview
 
 - Replace timekpr CLI calls with a polling loop that checks `loginctl` session state
-- Track usage ourselves in `/var/lib/screentimectl/usage.json`
-- Enforce login via PAM (`pam_exec` calling `screentimectl check-login`)
+- Track usage ourselves in `/var/lib/papabear/usage.json`
+- Enforce login via PAM (`pam_exec` calling `papabear check-login`)
 - Lock accounts via `passwd -l` / `passwd -u` when time runs out
 - Send desktop notifications (`notify-send`) and TTS alerts (`espeak-ng`) at configurable thresholds
-- Add `screentimectl status`, `screentimectl ask`, and `screentimectl check-login` commands
+- Add `papabear status`, `papabear ask`, and `papabear check-login` commands
 - Add Telegram `/hours` command to adjust allowed login hours
 
 The Telegram bot interface, HTTP API, and config structure remain the same (with additions).
@@ -34,13 +34,13 @@ notifications:                  # NEW section
 
 ### PAM Integration
 
-`screentimectl setup` installs a PAM rule in `/etc/pam.d/gdm-password` (and other relevant PAM services):
+`papabear setup` installs a PAM rule in `/etc/pam.d/gdm-password` (and other relevant PAM services):
 
 ```
-auth required pam_exec.so /usr/local/bin/screentimectl check-login
+auth required pam_exec.so /usr/local/bin/papabear check-login
 ```
 
-### `screentimectl check-login` command
+### `papabear check-login` command
 
 Called by PAM at login time. Reads `$PAM_USER`, checks:
 
@@ -82,7 +82,7 @@ Updates the config file on disk and reloads in memory. This way parents can adju
 
 ### `usage.go` — Persistent daily usage store
 
-Stores usage at `/var/lib/screentimectl/usage.json`:
+Stores usage at `/var/lib/papabear/usage.json`:
 
 ```json
 {
@@ -154,18 +154,18 @@ Exposes methods used by Telegram/HTTP handlers:
 - Start `mgr.Run()` goroutine in `runDaemon()`
 - Add `status` command: resolve current user, `GET http://localhost:3847/status?user=USER`, print remaining/used
 - Add `ask` command: resolve current user, `POST http://localhost:3847/request-more-time?user=USER`, print confirmation
-- Add `hours` command: `screentimectl hours {user} [start-end]` — view or update allowed hours in config
+- Add `hours` command: `papabear hours {user} [start-end]` — view or update allowed hours in config
 - Add `check-login` command: read `$PAM_USER`, check usage store + config, exit 0 or 1
 
 ### `setup.go`
 
-- Add step: create `/var/lib/screentimectl/` owned by screentimectl
+- Add step: create `/var/lib/papabear/` owned by papabear
 - Add step: install PAM rule in `/etc/pam.d/gdm-password`
 - Update sudoers:
   ```
-  screentimectl ALL=(ALL) NOPASSWD: /usr/bin/loginctl
-  screentimectl ALL=(ALL) NOPASSWD: /usr/bin/passwd -l *, /usr/bin/passwd -u *
-  screentimectl ALL=(ALL:ALL) NOPASSWD: /usr/bin/notify-send, /usr/bin/espeak-ng
+  papabear ALL=(ALL) NOPASSWD: /usr/bin/loginctl
+  papabear ALL=(ALL) NOPASSWD: /usr/bin/passwd -l *, /usr/bin/passwd -u *
+  papabear ALL=(ALL:ALL) NOPASSWD: /usr/bin/notify-send, /usr/bin/espeak-ng
   ```
 - Update example config with `daily_limit_minutes`, `allowed_hours`, and `notifications`
 
@@ -173,13 +173,13 @@ Exposes methods used by Telegram/HTTP handlers:
 
 - Remove: timekpra binary check
 - Add: loginctl, notify-send, espeak-ng binary checks
-- Add: `/var/lib/screentimectl/` exists and owned by screentimectl
+- Add: `/var/lib/papabear/` exists and owned by papabear
 - Add: PAM rule installed check
 - Add: config has `daily_limit_minutes` and `allowed_hours` for each user
 
 ## New CLI Commands
 
-### `screentimectl status`
+### `papabear status`
 
 For the child to check their own time. Determines current user via `os.Getenv("USER")`, hits local HTTP API, prints:
 
@@ -188,7 +188,7 @@ You have 1h 15m remaining (used 3h 45m today)
 Allowed hours: 8am - 6pm
 ```
 
-### `screentimectl ask`
+### `papabear ask`
 
 For the child to request more time. Determines current user, hits `/request-more-time`, prints:
 
@@ -196,18 +196,18 @@ For the child to request more time. Determines current user, hits `/request-more
 Request sent! Your parents have been notified.
 ```
 
-### `screentimectl hours {user} [start-end]`
+### `papabear hours {user} [start-end]`
 
 View or set allowed hours for a user. Can be run from SSH or locally.
 
 ```
-screentimectl hours bob          → Allowed hours for bob: 8am - 6pm
-screentimectl hours bob 8-20     → Updated allowed hours for bob: 8am - 8pm
+papabear hours bob          → Allowed hours for bob: 8am - 6pm
+papabear hours bob 8-20     → Updated allowed hours for bob: 8am - 8pm
 ```
 
 Updates the config file on disk. The daemon reloads config periodically or on SIGHUP.
 
-### `screentimectl check-login`
+### `papabear check-login`
 
 Called by PAM. Reads `$PAM_USER`, checks config + usage store, exits 0 (allow) or 1 (deny). No output on success; on denial, prints reason to stderr (shown to user at login screen).
 
@@ -230,7 +230,7 @@ Steps 4-7 must be done together (they break the old API).
 
 - Remove `fake-timekpra`, add `fake-loginctl` stub
 - Add `fake-notify-send`, `fake-espeak-ng`, `fake-passwd` stubs
-- Test `setup` creates `/var/lib/screentimectl/`
+- Test `setup` creates `/var/lib/papabear/`
 - Test `check-login` allows/denies correctly
 - Test `status` reads from usage store
 - Test `doctor` checks new binaries and PAM rule
@@ -239,11 +239,11 @@ Steps 4-7 must be done together (they break the old API).
 
 1. `go test ./...` — unit tests for usage store, check-login logic, duration parsing
 2. `docker build && docker run` — integration tests for setup/doctor/check-login
-3. Deploy to server, run `screentimectl doctor` to validate
+3. Deploy to server, run `papabear doctor` to validate
 4. Test manually: lock screen, verify timer pauses; unlock, verify it resumes
 5. Test time expiry: terminates session and locks account
 6. Test `check-login` blocks login when locked, allows when unlocked
 7. Test `/give` outside allowed hours: sets override, unlocks account, allows login
 8. Test `/hours` updates the time window
-9. Test `screentimectl status` and `screentimectl ask` as the child user
+9. Test `papabear status` and `papabear ask` as the child user
 10. Test notifications and TTS fire at thresholds

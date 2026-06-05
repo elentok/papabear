@@ -1,4 +1,4 @@
-# screentimectl
+# Papa Bear
 
 Parental screen-time control daemon: enforces per-user daily time limits and the
 hours of day during which a user is permitted to be logged in, controllable over Telegram.

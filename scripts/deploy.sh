@@ -7,9 +7,9 @@ if [[ $# -ne 1 ]]; then
 fi
 
 HOST="$1"
-BINARY="screentimectl"
+BINARY="papabear"
 TMPDIR=$(mktemp -d)
-REMOTE_SCRIPT="/tmp/screentimectl-deploy-$$.sh"
+REMOTE_SCRIPT="/tmp/papabear-deploy-$$.sh"
 trap 'rm -rf "$TMPDIR"' EXIT
 
 echo "Building for linux/amd64..."
@@ -34,12 +34,12 @@ sudo install -m 0755 "\$HOME/$BINARY" "/usr/local/bin/$BINARY"
 rm "\$HOME/$BINARY"
 
 echo
-echo "2/3. Setting up screentimectl..."
-sudo screentimectl setup
+echo "2/3. Setting up papabear..."
+sudo papabear setup
 
 echo
-echo "3/3. Restarting screentimectl..."
-sudo systemctl restart screentimectl
+echo "3/3. Restarting papabear..."
+sudo systemctl restart papabear
 EOF
 
 ssh -t "$HOST" "$REMOTE_SCRIPT"
@@ -48,4 +48,4 @@ echo "Done."
 echo
 
 echo "Showing Logs..."
-ssh -t "$HOST" "screentimectl logs"
+ssh -t "$HOST" "papabear logs"

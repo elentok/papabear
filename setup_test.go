@@ -15,7 +15,7 @@ func TestPAMRuleShowsFriendlyOutput(t *testing.T) {
 }
 
 func TestTrayScriptUsesCompactStatus(t *testing.T) {
-	if !strings.Contains(trayScript, `"/usr/local/bin/screentimectl", "status", "--compact"`) {
+	if !strings.Contains(trayScript, `"/usr/local/bin/papabear", "status", "--compact"`) {
 		t.Fatalf("trayScript does not call compact status")
 	}
 	if !strings.Contains(trayScript, "AyatanaAppIndicator3") {
@@ -51,7 +51,7 @@ func TestSetupAssets(t *testing.T) {
 	if !strings.Contains(exampleConfig, `machine_name: "My-PC"`) {
 		t.Fatalf("exampleConfig missing machine name")
 	}
-	if !strings.Contains(serviceFile, "ExecStart=/usr/local/bin/screentimectl run") {
+	if !strings.Contains(serviceFile, "ExecStart=/usr/local/bin/papabear run") {
 		t.Fatalf("serviceFile missing ExecStart")
 	}
 	if !strings.Contains(sudoersContent, "/usr/bin/chage -E 0 *") {

@@ -1,0 +1,3 @@
+papabear ALL=(ALL) NOPASSWD: /usr/bin/loginctl
+papabear ALL=(ALL) NOPASSWD: /usr/bin/chage -E 0 *, /usr/bin/chage -E -1 *, /usr/bin/chage -l *
+papabear ALL=(ALL) NOPASSWD: SETENV: /usr/bin/notify-send, /usr/bin/paplay

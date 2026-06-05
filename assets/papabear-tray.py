@@ -7,7 +7,7 @@ gi.require_version("AyatanaAppIndicator3", "0.1")
 from gi.repository import AyatanaAppIndicator3 as AppIndicator3
 from gi.repository import GLib, Gtk
 
-COMMAND = ["/usr/local/bin/screentimectl", "status", "--compact"]
+COMMAND = ["/usr/local/bin/papabear", "status", "--compact"]
 
 
 def status_text():
@@ -18,7 +18,7 @@ def status_text():
 
 
 indicator = AppIndicator3.Indicator.new(
-    "screentimectl",
+    "papabear",
     "alarm-symbolic",
     AppIndicator3.IndicatorCategory.APPLICATION_STATUS,
 )

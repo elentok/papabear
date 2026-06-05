@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	serviceUser           = "screentimectl"
-	configDir             = "/etc/screentimectl"
-	sudoersPath           = "/etc/sudoers.d/screentimectl"
-	servicePath           = "/etc/systemd/system/screentimectl.service"
-	trayPath              = "/usr/local/bin/screentimectl-tray"
+	serviceUser           = "papabear"
+	configDir             = "/etc/papabear"
+	sudoersPath           = "/etc/sudoers.d/papabear"
+	servicePath           = "/etc/systemd/system/papabear.service"
+	trayPath              = "/usr/local/bin/papabear-tray"
 	pamService            = "/etc/pam.d/gdm-password"
-	pamRule               = "auth required pam_exec.so quiet stdout /usr/local/bin/screentimectl check-login"
+	pamRule               = "auth required pam_exec.so quiet stdout /usr/local/bin/papabear check-login"
 	aptDependencyPackages = "sudo libnotify-bin pulseaudio-utils python3-venv gnome-shell-extension-appindicator python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1"
 
 	piperVenvPath      = "/usr/local/lib/piper-tts"
@@ -61,7 +61,7 @@ func runSetup() error {
 
 	fmt.Printf("\nSetup complete.\n")
 	fmt.Printf("Edit %s/config.yaml, then run:\n", configDir)
-	fmt.Printf("  systemctl enable --now screentimectl\n")
+	fmt.Printf("  systemctl enable --now papabear\n")
 	return nil
 }
 
@@ -104,7 +104,7 @@ func installPAMRule() error {
 	if err != nil {
 		return fmt.Errorf("reading %s: %w", pamService, err)
 	}
-	if strings.Contains(string(data), "screentimectl") {
+	if strings.Contains(string(data), "papabear") {
 		return nil // already installed
 	}
 	// Prepend the rule before the first auth line
@@ -234,12 +234,12 @@ func installTrayAutostart(username string) error {
 	if err := os.MkdirAll(autostartDir, 0755); err != nil {
 		return err
 	}
-	desktopPath := filepath.Join(autostartDir, "screentimectl-tray.desktop")
+	desktopPath := filepath.Join(autostartDir, "papabear-tray.desktop")
 	content := `[Desktop Entry]
 Type=Application
-Name=screentimectl
+Name=Papa Bear
 Comment=Show remaining screen time
-Exec=/usr/local/bin/screentimectl-tray
+Exec=/usr/local/bin/papabear-tray
 X-GNOME-Autostart-enabled=true
 `
 	if err := os.WriteFile(desktopPath, []byte(content), 0644); err != nil {
@@ -264,16 +264,16 @@ func installService() error {
 	// Write the binary path based on our own executable
 	self, err := os.Executable()
 	if err != nil {
-		self = "/usr/local/bin/screentimectl"
+		self = "/usr/local/bin/papabear"
 	}
 
 	content := fmt.Sprintf(`[Unit]
-Description=screentimectl daemon
+Description=Papa Bear daemon
 After=network.target
 
 [Service]
 Type=simple
-User=screentimectl
+User=papabear
 ExecStart=%s run
 Restart=on-failure
 RestartSec=5

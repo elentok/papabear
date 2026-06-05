@@ -13,9 +13,9 @@ assert_file() {
 
 # --- Test: setup ---
 
-echo "=== screentimectl setup ==="
+echo "=== papabear setup ==="
 
-if output=$(screentimectl setup 2>&1); then
+if output=$(papabear setup 2>&1); then
     pass "setup exits 0"
 else
     rc=$?
@@ -23,27 +23,27 @@ else
     echo "$output"
 fi
 
-assert_file /etc/screentimectl/config.yaml "config file created"
-assert_file /etc/sudoers.d/screentimectl   "sudoers rule created"
-assert_file /etc/systemd/system/screentimectl.service "systemd service created"
-assert_file /var/lib/screentimectl         "data directory created"
-assert_file /usr/local/bin/screentimectl-tray "tray indicator installed"
+assert_file /etc/papabear/config.yaml "config file created"
+assert_file /etc/sudoers.d/papabear   "sudoers rule created"
+assert_file /etc/systemd/system/papabear.service "systemd service created"
+assert_file /var/lib/papabear         "data directory created"
+assert_file /usr/local/bin/papabear-tray "tray indicator installed"
 
-if id screentimectl &>/dev/null; then
+if id papabear &>/dev/null; then
     pass "system user created"
 else
     fail "system user created"
 fi
 
 # Check PAM rule was installed
-if grep -q "screentimectl" /etc/pam.d/gdm-password; then
+if grep -q "papabear" /etc/pam.d/gdm-password; then
     pass "PAM rule installed"
 else
     fail "PAM rule installed"
 fi
 
 # Check sudoers contains loginctl (not timekpra)
-if grep -q "loginctl" /etc/sudoers.d/screentimectl; then
+if grep -q "loginctl" /etc/sudoers.d/papabear; then
     pass "sudoers has loginctl rule"
 else
     fail "sudoers has loginctl rule"
@@ -52,10 +52,10 @@ fi
 # --- Test: doctor ---
 
 echo ""
-echo "=== screentimectl doctor ==="
+echo "=== papabear doctor ==="
 
 # Write a config that doctor can parse
-cat > /etc/screentimectl/config.yaml <<'EOF'
+cat > /etc/papabear/config.yaml <<'EOF'
 machine_name: "test-machine"
 
 telegram:
@@ -78,16 +78,16 @@ users:
 EOF
 
 # Fix ownership after writing config
-chown screentimectl:screentimectl /etc/screentimectl/config.yaml
+chown papabear:papabear /etc/papabear/config.yaml
 
 # Create the test user so the "system user exists" check passes
 useradd --system --no-create-home --shell /usr/sbin/nologin testuser 2>/dev/null || true
 
-doctor_output=$(screentimectl doctor 2>&1)
+doctor_output=$(papabear doctor 2>&1)
 echo "$doctor_output"
 
 # Checks that should pass
-for check in "loginctl binary exists" "notify-send binary exists" "espeak-ng binary exists" "python3 binary exists" "tray AppIndicator Python bindings available" "config file exists and parses" "systemd service installed" "sudoers rule installed" "config file owned by screentimectl" "data directory exists" "tray indicator installed" "PAM rule installed" 'system user "testuser" exists'; do
+for check in "loginctl binary exists" "notify-send binary exists" "espeak-ng binary exists" "python3 binary exists" "tray AppIndicator Python bindings available" "config file exists and parses" "systemd service installed" "sudoers rule installed" "config file owned by papabear" "data directory exists" "tray indicator installed" "PAM rule installed" 'system user "testuser" exists'; do
     if echo "$doctor_output" | grep -qF "[OK]   $check"; then
         pass "doctor: $check"
     else
@@ -105,20 +105,20 @@ fi
 # --- Test: check-login ---
 
 echo ""
-echo "=== screentimectl check-login ==="
+echo "=== papabear check-login ==="
 
 # Create usage store directory
-mkdir -p /var/lib/screentimectl
+mkdir -p /var/lib/papabear
 
 # Should allow login for unmanaged user
-if PAM_USER=nobody screentimectl check-login; then
+if PAM_USER=nobody papabear check-login; then
     pass "check-login allows unmanaged user"
 else
     fail "check-login allows unmanaged user"
 fi
 
 # Should allow login for managed user within hours with time remaining
-cat > /etc/screentimectl/config.yaml <<'EOF'
+cat > /etc/papabear/config.yaml <<'EOF'
 machine_name: "test-machine"
 telegram:
   bot_token: "fake-token"
@@ -134,7 +134,7 @@ users:
       end: 23
 EOF
 
-if PAM_USER=testuser screentimectl check-login; then
+if PAM_USER=testuser papabear check-login; then
     pass "check-login allows user with time remaining"
 else
     fail "check-login allows user with time remaining"
@@ -142,8 +142,8 @@ fi
 
 # Should deny login when no time remaining
 # Write usage file with all time used up
-mkdir -p /var/lib/screentimectl
-cat > /etc/screentimectl/config.yaml <<'EOF'
+mkdir -p /var/lib/papabear
+cat > /etc/papabear/config.yaml <<'EOF'
 machine_name: "test-machine"
 telegram:
   bot_token: "fake-token"
@@ -160,7 +160,7 @@ users:
 EOF
 
 today=$(date +%Y-%m-%d)
-cat > /var/lib/screentimectl/usage.json <<EOF
+cat > /var/lib/papabear/usage.json <<EOF
 {
   "date": "$today",
   "users": {
@@ -172,7 +172,7 @@ cat > /var/lib/screentimectl/usage.json <<EOF
 }
 EOF
 
-if PAM_USER=testuser screentimectl check-login 2>/dev/null; then
+if PAM_USER=testuser papabear check-login 2>/dev/null; then
     fail "check-login denies user with no time remaining"
 else
     pass "check-login denies user with no time remaining"

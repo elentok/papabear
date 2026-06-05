@@ -1,6 +1,8 @@
-# screentimectl
+# Papa Bear
 
-A daemon that lets parents remotely control screen time on Linux machines via Telegram. Tracks active session time via `loginctl`, enforces limits by locking the screen and account, and sends desktop notifications and TTS alerts when time is running low.
+![Papa Bear logo](docs/logo-512.png)
+
+Papa Bear is a daemon that lets parents remotely control screen time on Linux machines via Telegram. It tracks active session time via `loginctl`, enforces limits by locking the screen and account, and sends desktop notifications and TTS alerts when time is running low.
 
 ## Requirements
 
@@ -12,28 +14,28 @@ A daemon that lets parents remotely control screen time on Linux machines via Te
 
 1. Build or download the binary:
    ```sh
-   go build -o screentimectl
-   sudo cp screentimectl /usr/local/bin/
+   go build -o papabear
+   sudo cp papabear /usr/local/bin/
    ```
 
 2. Run setup (creates system user, config, sudoers, PAM rule, and systemd service):
    ```sh
-   sudo screentimectl setup
+   sudo papabear setup
    ```
 
 3. Edit the config:
    ```sh
-   sudo nano /etc/screentimectl/config.yaml
+   sudo nano /etc/papabear/config.yaml
    ```
 
 4. Enable and start:
    ```sh
-   sudo systemctl enable --now screentimectl
+   sudo systemctl enable --now papabear
    ```
 
 ## Configuration
 
-`/etc/screentimectl/config.yaml`:
+`/etc/papabear/config.yaml`:
 
 ```yaml
 machine_name: "Bob-PC"
@@ -86,26 +88,26 @@ Using `/give` outside allowed hours automatically creates a temporary override s
 These commands are for the child to run on their own machine:
 
 ```sh
-screentimectl status   # show remaining screen time, allowed hours, and today's activity
-screentimectl status --compact  # show only remaining screen time
-screentimectl ask      # request more time (notifies parents via Telegram)
-screentimectl ask 30   # request 30 minutes specifically
+papabear status   # show remaining screen time, allowed hours, and today's activity
+papabear status --compact  # show only remaining screen time
+papabear ask      # request more time (notifies parents via Telegram)
+papabear ask 30   # request 30 minutes specifically
 ```
 
 ## Admin Commands
 
 ```sh
-screentimectl run          # start the daemon (normally via systemd)
-screentimectl setup        # install system dependencies (run as root)
-screentimectl doctor       # check configuration and dependencies
-screentimectl logs         # tail the service logs
-screentimectl give bob 30m # add 30 minutes for bob
-screentimectl lock bob     # lock bob's screen and account immediately
-screentimectl unlock bob 15m  # set bob's remaining time to 15 minutes and allow login
-screentimectl status bob   # show bob's remaining time and activity timeline
-screentimectl hours bob    # show allowed hours for bob
-screentimectl hours bob 8-20  # set allowed hours
-screentimectl say bob "Time for dinner"  # send a desktop notification and TTS message
+papabear run          # start the daemon (normally via systemd)
+papabear setup        # install system dependencies (run as root)
+papabear doctor       # check configuration and dependencies
+papabear logs         # tail the service logs
+papabear give bob 30m # add 30 minutes for bob
+papabear lock bob     # lock bob's screen and account immediately
+papabear unlock bob 15m  # set bob's remaining time to 15 minutes and allow login
+papabear status bob   # show bob's remaining time and activity timeline
+papabear hours bob    # show allowed hours for bob
+papabear hours bob 8-20  # set allowed hours
+papabear say bob "Time for dinner"  # send a desktop notification and TTS message
 ```
 
 For SSH/admin use, the user argument can be omitted for `give`, `lock`, `unlock`, `status`, `hours`, and `say` when there is one configured user, or when exactly one configured user is active.
@@ -113,10 +115,10 @@ For SSH/admin use, the user argument can be omitted for `give`, `lock`, `unlock`
 ## HTTP API
 
 ```sh
-# Request more time (used by `screentimectl ask`)
+# Request more time (used by `papabear ask`)
 curl -X POST "http://127.0.0.1:3847/request-more-time?user=bob&minutes=15"
 
-# Check status (used by `screentimectl status`)
+# Check status (used by `papabear status`)
 curl "http://127.0.0.1:3847/status?user=bob"
 ```
 
@@ -124,12 +126,12 @@ curl "http://127.0.0.1:3847/status?user=bob"
 
 - The daemon polls `loginctl` every 10 seconds to check session state
 - Time only counts when the session is active (not locked or idle)
-- Daily usage is stored in `/var/lib/screentimectl/usage.json` and resets at midnight
-- Activity transitions (active/locked/idle/offline) are logged to `/var/lib/screentimectl/log/{user}/YYYY-MM-DD.log`
+- Daily usage is stored in `/var/lib/papabear/usage.json` and resets at midnight
+- Activity transitions (active/locked/idle/offline) are logged to `/var/lib/papabear/log/{user}/YYYY-MM-DD.log`
 - When time runs out: screen locks, account access is disabled via `chage -E 0`, and parents are notified
 - When time is granted via `/give`, the child receives a desktop notification and TTS announcement
-- TTS uses `piper-tts` with the `en_US-lessac-medium` voice model; generated WAV files are cached in `/var/lib/screentimectl/tts-cache/` so repeated messages play instantly
-- `setup` installs `/usr/local/bin/screentimectl-tray` and autostarts it for configured users to show remaining time from `status --compact`
+- TTS uses `piper-tts` with the `en_US-lessac-medium` voice model; generated WAV files are cached in `/var/lib/papabear/tts-cache/` so repeated messages play instantly
+- `setup` installs `/usr/local/bin/papabear-tray` and autostarts it for configured users to show remaining time from `status --compact`
 - Login is enforced via PAM (`pam_exec`) -- the child cannot log in outside allowed hours or with no time remaining
 - Parents can grant time or adjust hours at any time via Telegram
 
@@ -142,5 +144,5 @@ curl "http://127.0.0.1:3847/status?user=bob"
 ## Logs
 
 ```sh
-journalctl -u screentimectl -f
+journalctl -u papabear -f
 ```

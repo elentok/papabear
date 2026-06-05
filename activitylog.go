@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const logDir = "/var/lib/screentimectl/log"
+const logDir = "/var/lib/papabear/log"
 
 type LogEntry struct {
 	Time   string `json:"time"`

@@ -10,7 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const configPath = "/etc/screentimectl/config.yaml"
+const configPath = "/etc/papabear/config.yaml"
 
 type Config struct {
 	MachineName   string             `yaml:"machine_name"`
@@ -104,7 +104,7 @@ func loadConfig(path string) (*Config, error) {
 // runConfig dispatches the `config` subcommand (edit or show).
 func runConfig(args []string) {
 	if len(args) != 1 {
-		fmt.Fprintln(os.Stderr, "Usage: screentimectl config <edit|show>")
+		fmt.Fprintln(os.Stderr, "Usage: papabear config <edit|show>")
 		os.Exit(1)
 	}
 	switch args[0] {
@@ -114,7 +114,7 @@ func runConfig(args []string) {
 		runConfigShow()
 	default:
 		fmt.Fprintf(os.Stderr, "unknown config subcommand: %s\n", args[0])
-		fmt.Fprintln(os.Stderr, "Usage: screentimectl config <edit|show>")
+		fmt.Fprintln(os.Stderr, "Usage: papabear config <edit|show>")
 		os.Exit(1)
 	}
 }
