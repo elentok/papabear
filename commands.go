@@ -154,8 +154,8 @@ func (c *AdminCommands) Say(args []string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("usage: say [user] {message}: %w", err)
 	}
-	sendTTSFunc(user, msg, c.cfg.TTSModel())
 	sendNotificationFunc(user, msg)
+	sendTTSFunc(user, msg, c.cfg.TTSModel())
 	return fmt.Sprintf("Sent to %s: %q", capitalize(user), msg), nil
 }
 
