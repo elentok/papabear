@@ -70,12 +70,12 @@ func TestAdminCommandsParsesOmittedUserCommands(t *testing.T) {
 		t.Fatalf("parseUserOptionalDuration duration = %q, %q; want bob, 15m", user, duration)
 	}
 
-	user, hours, err := cmd.parseUserOptionalHours([]string{"8-20"})
+	user, rest, err := cmd.splitOptionalUser([]string{"8-20"})
 	if err != nil {
-		t.Fatalf("parseUserOptionalHours: %v", err)
+		t.Fatalf("splitOptionalUser: %v", err)
 	}
-	if user != "bob" || hours != "8-20" {
-		t.Fatalf("parseUserOptionalHours = %q, %q; want bob, 8-20", user, hours)
+	if user != "bob" || len(rest) != 1 || rest[0] != "8-20" {
+		t.Fatalf("splitOptionalUser = %q, %v; want bob, [8-20]", user, rest)
 	}
 
 	user, msg, err := cmd.parseUserMessage([]string{"hello", "there"})
@@ -127,12 +127,12 @@ func TestAdminCommandsParsesExplicitUserCommands(t *testing.T) {
 		t.Fatalf("parseUserOptionalDuration explicit = %q, %q; want alice, empty", user, duration)
 	}
 
-	user, hours, err := cmd.parseUserOptionalHours([]string{"alice", "8-20"})
+	user, rest, err := cmd.splitOptionalUser([]string{"alice", "8-20"})
 	if err != nil {
-		t.Fatalf("parseUserOptionalHours explicit: %v", err)
+		t.Fatalf("splitOptionalUser explicit: %v", err)
 	}
-	if user != "alice" || hours != "8-20" {
-		t.Fatalf("parseUserOptionalHours explicit = %q, %q; want alice, 8-20", user, hours)
+	if user != "alice" || len(rest) != 1 || rest[0] != "8-20" {
+		t.Fatalf("splitOptionalUser explicit = %q, %v; want alice, [8-20]", user, rest)
 	}
 
 	user, msg, err := cmd.parseUserMessage([]string{"alice", "hello"})

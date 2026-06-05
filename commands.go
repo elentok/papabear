@@ -9,10 +9,13 @@ import (
 type AdminCommands struct {
 	cfg *Config
 	mgr *SessionManager
+	// savePath is where config mutations are persisted; defaults to configPath
+	// and is overridable in tests.
+	savePath string
 }
 
 func NewAdminCommands(cfg *Config, mgr *SessionManager) *AdminCommands {
-	return &AdminCommands{cfg: cfg, mgr: mgr}
+	return &AdminCommands{cfg: cfg, mgr: mgr, savePath: configPath}
 }
 
 func (c *AdminCommands) Give(args []string) (string, error) {
@@ -120,31 +123,80 @@ func (c *AdminCommands) StatusSummaryForUser(user string, compact bool) (string,
 	return formatStatusSummary(ut, compact), nil
 }
 
-func (c *AdminCommands) Hours(args []string) (string, error) {
-	user, hours, err := c.parseUserOptionalHours(args)
-	if err != nil {
-		return "", fmt.Errorf("usage: hours [user] [start-end]: %w", err)
-	}
+const hoursUsage = "hours [user] | hours [user] start-end | hours [user] <day> start-end | hours [user] <day> clear"
 
+func (c *AdminCommands) Hours(args []string) (string, error) {
+	user, rest, err := c.splitOptionalUser(args)
+	if err != nil {
+		return "", fmt.Errorf("usage: %s: %w", hoursUsage, err)
+	}
 	u := c.cfg.getUser(user)
-	if hours == "" {
+
+	switch len(rest) {
+	case 0:
+		// Show the full schedule.
 		return fmt.Sprintf("Allowed hours for %s:\n%s",
 			capitalize(user),
 			formatSchedule(u.AllowedHours, u.AllowedHoursByDay, time.Now().Weekday())), nil
+
+	case 1:
+		// Set the Default Allowed Hours.
+		ah, err := parseHoursRange(rest[0])
+		if err != nil {
+			return "", fmt.Errorf("invalid hours: %w", err)
+		}
+		u.AllowedHours = ah
+		if err := c.cfg.save(c.savePath); err != nil {
+			return "", fmt.Errorf("failed to save config: %w", err)
+		}
+		return fmt.Sprintf("Updated allowed hours for %s: %s - %s",
+			capitalize(user),
+			formatHour(ah.Start, ah.StartMinute),
+			formatHour(ah.End, ah.EndMinute)), nil
+
+	case 2:
+		// Set/replace or clear a Per-Day Override.
+		return c.setDayOverride(user, u, rest[0], rest[1])
+
+	default:
+		return "", fmt.Errorf("usage: %s", hoursUsage)
+	}
+}
+
+// setDayOverride sets, replaces, or clears the Per-Day Override for the weekday
+// named by dayArg. A rangeArg of "clear" removes the override; otherwise it is
+// parsed as a start-end window.
+func (c *AdminCommands) setDayOverride(user string, u *UserConfig, dayArg, rangeArg string) (string, error) {
+	wd, err := parseWeekday(dayArg)
+	if err != nil {
+		return "", err
+	}
+	day := weekdayName(wd)
+
+	if rangeArg == "clear" {
+		if _, ok := u.AllowedHoursByDay[day]; !ok {
+			return fmt.Sprintf("%s has no %s override", capitalize(user), day), nil
+		}
+		delete(u.AllowedHoursByDay, day)
+		if err := c.cfg.save(c.savePath); err != nil {
+			return "", fmt.Errorf("failed to save config: %w", err)
+		}
+		return fmt.Sprintf("Cleared %s override for %s", day, capitalize(user)), nil
 	}
 
-	ah, err := parseHoursRange(hours)
+	ah, err := parseHoursRange(rangeArg)
 	if err != nil {
 		return "", fmt.Errorf("invalid hours: %w", err)
 	}
-
-	u.AllowedHours = ah
-	if err := c.cfg.save(configPath); err != nil {
+	if u.AllowedHoursByDay == nil {
+		u.AllowedHoursByDay = map[string]AllowedHours{}
+	}
+	u.AllowedHoursByDay[day] = ah
+	if err := c.cfg.save(c.savePath); err != nil {
 		return "", fmt.Errorf("failed to save config: %w", err)
 	}
-
-	return fmt.Sprintf("Updated allowed hours for %s: %s - %s",
-		capitalize(user),
+	return fmt.Sprintf("Updated %s allowed hours for %s: %s - %s",
+		day, capitalize(user),
 		formatHour(ah.Start, ah.StartMinute),
 		formatHour(ah.End, ah.EndMinute)), nil
 }
@@ -205,26 +257,15 @@ func (c *AdminCommands) parseUserOptionalDuration(args []string) (string, string
 	}
 }
 
-func (c *AdminCommands) parseUserOptionalHours(args []string) (string, string, error) {
-	switch len(args) {
-	case 0:
-		user, err := c.defaultUser()
-		return user, "", err
-	case 1:
-		if c.cfg.isValidUser(args[0]) {
-			return args[0], "", nil
-		}
-		if _, err := parseHoursRange(args[0]); err != nil {
-			return "", "", fmt.Errorf("unknown user: %s", args[0])
-		}
-		user, err := c.defaultUser()
-		return user, args[0], err
-	case 2:
-		user, err := c.requireValidUser(args[0])
-		return user, args[1], err
-	default:
-		return "", "", fmt.Errorf("too many arguments")
+// splitOptionalUser resolves an optional leading user argument: if the first
+// argument names a valid user it is consumed, otherwise the default user is
+// resolved and all arguments are returned as the remainder.
+func (c *AdminCommands) splitOptionalUser(args []string) (string, []string, error) {
+	if len(args) > 0 && c.cfg.isValidUser(args[0]) {
+		return args[0], args[1:], nil
 	}
+	user, err := c.defaultUser()
+	return user, args, err
 }
 
 func (c *AdminCommands) parseUserMessage(args []string) (string, string, error) {
