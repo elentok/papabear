@@ -39,16 +39,21 @@ type SessionManager struct {
 	bot        *Bot
 	actLog     *ActivityLog
 	lastStatus map[string]string
+	// accountLocked tracks whether the daemon has locked each user's OS
+	// account, so we only unlock once when they become eligible again
+	// (rather than shelling out to chage on every poll).
+	accountLocked map[string]bool
 }
 
 func NewSessionManager(cfg *Config, configPath string, store *UsageStore, bot *Bot, actLog *ActivityLog) *SessionManager {
 	return &SessionManager{
-		cfg:        cfg,
-		configPath: configPath,
-		store:      store,
-		bot:        bot,
-		actLog:     actLog,
-		lastStatus: make(map[string]string),
+		cfg:           cfg,
+		configPath:    configPath,
+		store:         store,
+		bot:           bot,
+		actLog:        actLog,
+		lastStatus:    make(map[string]string),
+		accountLocked: make(map[string]bool),
 	}
 }
 
@@ -76,17 +81,12 @@ func (m *SessionManager) poll() {
 		log.Printf("session: reload store: %v", err)
 	}
 
-	newDay := m.store.ResetIfNewDay()
-	if newDay {
-		// Unlock accounts at day reset if within allowed hours
-		for _, u := range m.cfg.Users {
-			if isWithinAllowedHoursFunc(u.AllowedHours) {
-				if err := unlockAccountFunc(u.Name); err != nil {
-					log.Printf("session: unlock %s on day reset: %v", u.Name, err)
-				}
-			}
-		}
-	}
+	// Reset the day's usage when the date rolls over. Re-unlocking is handled
+	// per-user in pollUser based on eligibility, not here: the date rolls over
+	// at midnight, which is typically outside allowed hours, so unlocking on
+	// the reset event would happen too early (and never again once the start
+	// hour arrives).
+	m.store.ResetIfNewDay()
 
 	for _, u := range m.cfg.Users {
 		m.pollUser(u)
@@ -107,6 +107,7 @@ func (m *SessionManager) pollUser(u UserConfig) {
 		if len(sessions) > 0 {
 			log.Printf("session: locking %s. Reason: outside allowed hours", u.Name)
 			lockOutUserFunc(u.Name, sessions)
+			m.accountLocked[u.Name] = true
 			m.logTransition(u.Name, "locked")
 		}
 		return
@@ -130,6 +131,7 @@ func (m *SessionManager) pollUser(u UserConfig) {
 			sendNotificationFunc(u.Name, msg)
 			sendTTSFunc(u.Name, msg, m.cfg.TTSModel())
 			lockOutUserFunc(u.Name, sessions)
+			m.accountLocked[u.Name] = true
 			m.store.SetExpiryHandled(u.Name, true)
 			m.logTransition(u.Name, "time-expired")
 			m.sendAll(fmt.Sprintf("%s's screen time has expired", capitalize(u.Name)))
@@ -137,6 +139,20 @@ func (m *SessionManager) pollUser(u UserConfig) {
 		return
 	}
 	m.store.SetExpiryHandled(u.Name, false)
+
+	// The user is within allowed hours with time remaining. If the daemon
+	// previously locked their account (outside hours or time expired), unlock
+	// it now so they can log back in — e.g. the morning after the machine was
+	// left on overnight and the day's limit reset.
+	if m.accountLocked[u.Name] {
+		log.Printf("session: unlocking %s. Reason: within allowed hours with time remaining", u.Name)
+		if err := unlockAccountFunc(u.Name); err != nil {
+			log.Printf("session: unlock %s on eligibility: %v", u.Name, err)
+		} else {
+			m.accountLocked[u.Name] = false
+		}
+	}
+
 	m.logTransition(u.Name, status)
 
 	// Check notification thresholds
@@ -201,6 +217,8 @@ func (m *SessionManager) AddTime(user string, minutes int) (UserTime, error) {
 	}
 	if err := unlockAccountFunc(user); err != nil {
 		log.Printf("session: unlock %s after AddTime: %v", user, err)
+	} else {
+		m.accountLocked[user] = false
 	}
 	if err := m.store.Save(); err != nil {
 		log.Printf("session: save after AddTime: %v", err)
@@ -225,6 +243,8 @@ func (m *SessionManager) SetTime(user string, minutes int) (UserTime, error) {
 		}
 		if err := unlockAccountFunc(user); err != nil {
 			log.Printf("session: unlock %s after SetTime: %v", user, err)
+		} else {
+			m.accountLocked[user] = false
 		}
 	}
 	if err := m.store.Save(); err != nil {
@@ -233,7 +253,9 @@ func (m *SessionManager) SetTime(user string, minutes int) (UserTime, error) {
 	return m.store.GetUserTime(user, u.DailyLimitMinutes*60), nil
 }
 
-// LockUser terminates all sessions and locks the account.
+// LockUser terminates all sessions and locks the account. This is an explicit
+// admin action, so it is deliberately not tracked in accountLocked (which only
+// records automatic policy locks that pollUser may auto-undo).
 func (m *SessionManager) LockUser(user string) error {
 	log.Printf("session: locking %s. Reason: admin command", user)
 	return lockOutUserFunc(user, findUserSessionsFunc(user))
@@ -241,7 +263,11 @@ func (m *SessionManager) LockUser(user string) error {
 
 // UnlockUser unlocks the account.
 func (m *SessionManager) UnlockUser(user string) error {
-	return unlockAccountFunc(user)
+	err := unlockAccountFunc(user)
+	if err == nil {
+		m.accountLocked[user] = false
+	}
+	return err
 }
 
 // logTransition logs a status change for the user if it differs from the last known status.
@@ -276,11 +302,17 @@ func (m *SessionManager) shutdownUnlock() {
 func (m *SessionManager) startupUnlock() {
 	for _, u := range m.cfg.Users {
 		if !m.canUserLogin(u) {
+			// Ineligible now (outside hours or out of time). Their account may
+			// be locked from before the restart; record that so pollUser
+			// unlocks it once they become eligible again.
+			m.accountLocked[u.Name] = true
 			continue
 		}
 		log.Printf("session: unlock %s on startup", u.Name)
 		if err := unlockAccountFunc(u.Name); err != nil {
 			log.Printf("session: startup unlock %s: %v", u.Name, err)
+		} else {
+			m.accountLocked[u.Name] = false
 		}
 	}
 }

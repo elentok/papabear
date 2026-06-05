@@ -68,6 +68,65 @@ func TestSessionManagerPollUserHandlesExpiryOnce(t *testing.T) {
 	}
 }
 
+func TestPollUserUnlocksAccountWhenBecomingEligible(t *testing.T) {
+	// Regression: machine left on overnight while the account was locked
+	// (outside hours / out of time). When the new day's start hour arrives the
+	// daemon must unlock the OS account so the user can log back in. The day
+	// reset happens at midnight (outside hours), so the unlock must be driven
+	// by pollUser eligibility, not by the reset event.
+	path := filepath.Join(t.TempDir(), "usage.json")
+	store, err := NewUsageStore(path)
+	if err != nil {
+		t.Fatalf("NewUsageStore: %v", err)
+	}
+
+	cfg := &Config{
+		Users: []UserConfig{{
+			Name:              "bob",
+			DailyLimitMinutes: 60,
+			AllowedHours:      AllowedHours{Start: 8, End: 18},
+		}},
+	}
+
+	restore := stubSessionFuncs()
+	defer restore()
+
+	var locks, unlocks int
+	withinHours := false
+	hasSession := true
+	findUserSessionsFunc = func(string) []string {
+		if hasSession {
+			return []string{"1"}
+		}
+		return nil
+	}
+	getUserSessionStatusFunc = func(string) string { return "active" }
+	lockOutUserFunc = func(string, []string) error { locks++; return nil }
+	unlockAccountFunc = func(string) error { unlocks++; return nil }
+	sendNotificationFunc = func(string, string) {}
+	sendTTSFunc = func(string, string, string) {}
+	isWithinAllowedHoursFunc = func(AllowedHours) bool { return withinHours }
+
+	mgr := NewSessionManager(cfg, "", store, nil, nil)
+
+	// Night before: outside allowed hours with an active session -> lock.
+	mgr.pollUser(cfg.Users[0])
+	if locks != 1 {
+		t.Fatalf("locks = %d, want 1", locks)
+	}
+
+	// Next morning: within allowed hours, user logged out overnight, fresh
+	// day's time available -> the account should be unlocked exactly once.
+	withinHours = true
+	hasSession = false
+	mgr.pollUser(cfg.Users[0])
+	mgr.pollUser(cfg.Users[0])
+
+	if unlocks != 1 {
+		t.Fatalf("unlocks = %d, want 1 (unlock once on eligibility, not every poll)", unlocks)
+	}
+}
+
 func stubSessionFuncs() func() {
 	prevFindSessions := findUserSessionsFunc
 	prevGetStatus := getUserSessionStatusFunc
