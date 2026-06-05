@@ -80,6 +80,7 @@ users:
 | `/status [bob]`              | Show remaining time, used time, allowed hours, and activity timeline |
 | `/hours [bob]`               | Show Bob's allowed hours                                             |
 | `/hours [bob] 8-20`          | Set allowed hours to 8am-8pm                                         |
+| `/hours [bob] saturday 8-20` | Set allowed hours for a specific day                                 |
 | `/say [bob] Time for dinner` | Speak a message to Bob via TTS                                       |
 
 Duration formats: `15`, `15m`, `1h`, `1h30m`.
@@ -116,9 +117,11 @@ papabear hours bob    # show allowed hours for bob
 papabear hours bob 8-20  # set allowed hours
 papabear hours bob saturday 10-14  # set a specific day's allowed hours
 papabear say bob "Time for dinner"  # send a desktop notification and TTS message
+papabear config show  # print the compiled config with defaults applied
+papabear config edit  # open the config in $EDITOR and validate it
 papabear completion bash > /etc/bash_completion.d/papabear  # generate bash completion
 papabear completion fish > ~/.config/fish/completions/papabear.fish  # generate fish completion
-papabear completion zsh > ~/.zsh/completions/_papabear  # generate shell completion
+papabear completion zsh > ~/.zsh/completions/_papabear  # generate zsh completion
 ```
 
 For SSH/admin use, the user argument can be omitted for `give`, `lock`, `unlock`, `status`, `hours`, and `say` when there is one configured user, or when exactly one configured user is active.

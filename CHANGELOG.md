@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.0 - 2026-06-05
+
+- Renamed the project to Papa Bear.
+- Reworked the CLI around Cobra, which improves built-in help output and adds shell completion generation for bash, fish, zsh, and PowerShell.
+- Added a `config` command with `config show` and `config edit` subcommands for inspecting the compiled config and editing it with validation.
+- Added per-day allowed-hours overrides, including `hours [user] <day> start-end` and `hours [user] <day> clear`, and updated status output to show the full weekly schedule with overrides.
+- Status output now includes user account expiration state, and overnight unlock handling was fixed so allowed users are unlocked correctly after the machine is left running overnight or restarted.
+- The daemon now reloads config and usage data during polling so CLI-admin changes take effect promptly, and shutdown unlocks all managed users cleanly.
+- TTS delivery is faster because speech is triggered after sending the desktop notification, and the piper installer/setup flow was fixed and refreshed.
+- Deploy/setup behavior was updated to remove old `screentimectl` installs and refresh related sudoers/runtime assets.
+
 ## v0.4.0
 
 - Switched account lock/unlock from `passwd -l` / `passwd -u` to `chage -E 0` / `chage -E -1` to avoid unlock failures on accounts without a usable password hash.
