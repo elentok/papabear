@@ -87,7 +87,7 @@ doctor_output=$(papabear doctor 2>&1)
 echo "$doctor_output"
 
 # Checks that should pass
-for check in "loginctl binary exists" "notify-send binary exists" "espeak-ng binary exists" "python3 binary exists" "tray AppIndicator Python bindings available" "config file exists and parses" "systemd service installed" "sudoers rule installed" "config file owned by papabear" "data directory exists" "tray indicator installed" "PAM rule installed" 'system user "testuser" exists'; do
+for check in "loginctl binary exists" "notify-send binary exists" "piper binary exists" "piper voice model exists" "python3 binary exists" "tray AppIndicator Python bindings available" "config file exists and parses" "systemd service installed" "sudoers rule installed" "config file owned by papabear" "data directory exists" "tray indicator installed" "PAM rule installed" 'system user "testuser" exists'; do
     if echo "$doctor_output" | grep -qF "[OK]   $check"; then
         pass "doctor: $check"
     else

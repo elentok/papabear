@@ -16,9 +16,8 @@ RUN apt-get update && \
 COPY test/docker/fake-loginctl /usr/bin/loginctl
 RUN chmod +x /usr/bin/loginctl
 
-# Fake notify-send and espeak-ng (no-ops)
+# Fake notify-send for testing
 RUN echo '#!/bin/bash' > /usr/bin/notify-send && chmod +x /usr/bin/notify-send
-RUN echo '#!/bin/bash' > /usr/bin/espeak-ng && chmod +x /usr/bin/espeak-ng
 
 # Create a fake PAM file for testing
 RUN mkdir -p /etc/pam.d && echo 'auth required pam_unix.so' > /etc/pam.d/gdm-password
