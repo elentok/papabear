@@ -29,16 +29,28 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "1/3. Installing /usr/local/bin/$BINARY"
+echo "1/4. Removing previous screentimectl install if present"
+if systemctl list-unit-files | grep -q '^screentimectl\.service'; then
+    sudo systemctl disable --now screentimectl || true
+fi
+sudo rm -f \
+    /usr/local/bin/screentimectl \
+    /usr/local/bin/screentimectl-tray \
+    /etc/systemd/system/screentimectl.service \
+    /etc/sudoers.d/screentimectl
+sudo systemctl daemon-reload
+
+echo
+echo "2/4. Installing /usr/local/bin/$BINARY"
 sudo install -m 0755 "\$HOME/$BINARY" "/usr/local/bin/$BINARY"
 rm "\$HOME/$BINARY"
 
 echo
-echo "2/3. Setting up papabear..."
+echo "3/4. Setting up papabear..."
 sudo papabear setup
 
 echo
-echo "3/3. Restarting papabear..."
+echo "4/4. Restarting papabear..."
 sudo systemctl restart papabear
 EOF
 
