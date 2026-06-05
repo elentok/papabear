@@ -72,3 +72,49 @@ func TestEffectiveAllowedHours(t *testing.T) {
 		}
 	})
 }
+
+func TestFormatSchedule(t *testing.T) {
+	def := AllowedHours{Start: 8, End: 18}
+	sat := AllowedHours{Start: 7, End: 20}
+	tue := AllowedHours{Start: 7, End: 18}
+
+	tests := []struct {
+		name  string
+		byDay map[string]AllowedHours
+		today time.Weekday
+		want  string
+	}{
+		{
+			name:  "default only, marker on default",
+			byDay: nil,
+			today: time.Monday,
+			want:  "  default: 8am - 6pm (today)",
+		},
+		{
+			name:  "one override, today is a non-override day -> marker on default",
+			byDay: map[string]AllowedHours{"saturday": sat},
+			today: time.Monday,
+			want:  "  default: 8am - 6pm (today)\n  saturday: 7am - 8pm",
+		},
+		{
+			name:  "one override, today is the override day -> marker on override line",
+			byDay: map[string]AllowedHours{"saturday": sat},
+			today: time.Saturday,
+			want:  "  default: 8am - 6pm\n  saturday: 7am - 8pm (today)",
+		},
+		{
+			name:  "multiple overrides render Monday-first",
+			byDay: map[string]AllowedHours{"saturday": sat, "tuesday": tue},
+			today: time.Tuesday,
+			want:  "  default: 8am - 6pm\n  tuesday: 7am - 6pm (today)\n  saturday: 7am - 8pm",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := formatSchedule(def, tc.byDay, tc.today); got != tc.want {
+				t.Errorf("formatSchedule:\n--- got ---\n%s\n--- want ---\n%s", got, tc.want)
+			}
+		})
+	}
+}

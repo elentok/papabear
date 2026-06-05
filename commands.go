@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 type AdminCommands struct {
@@ -92,10 +93,10 @@ func (c *AdminCommands) StatusForUser(user string) (string, error) {
 	}
 
 	u := c.cfg.getUser(user)
-	text := fmt.Sprintf("%s has %s remaining (used %s today)\nAllowed hours: %s - %s\nSession: %s\nAccount: %s",
+	schedule := formatSchedule(u.AllowedHours, u.AllowedHoursByDay, time.Now().Weekday())
+	text := fmt.Sprintf("%s has %s remaining (used %s today)\nAllowed hours:\n%s\nSession: %s\nAccount: %s",
 		capitalize(user), ut.RemainingStr(), ut.UsedStr(),
-		formatHour(u.AllowedHours.Start, u.AllowedHours.StartMinute),
-		formatHour(u.AllowedHours.End, u.AllowedHours.EndMinute),
+		schedule,
 		ut.SessionStatus, ut.AccountStatus)
 
 	if c.mgr.actLog != nil {
@@ -127,10 +128,9 @@ func (c *AdminCommands) Hours(args []string) (string, error) {
 
 	u := c.cfg.getUser(user)
 	if hours == "" {
-		return fmt.Sprintf("Allowed hours for %s: %s - %s",
+		return fmt.Sprintf("Allowed hours for %s:\n%s",
 			capitalize(user),
-			formatHour(u.AllowedHours.Start, u.AllowedHours.StartMinute),
-			formatHour(u.AllowedHours.End, u.AllowedHours.EndMinute)), nil
+			formatSchedule(u.AllowedHours, u.AllowedHoursByDay, time.Now().Weekday())), nil
 	}
 
 	ah, err := parseHoursRange(hours)

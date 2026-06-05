@@ -48,3 +48,35 @@ func effectiveAllowedHours(def AllowedHours, byDay map[string]AllowedHours, wd t
 func (u UserConfig) effectiveAllowedHoursNow() AllowedHours {
 	return effectiveAllowedHours(u.AllowedHours, u.AllowedHoursByDay, time.Now().Weekday())
 }
+
+// weekdayDisplayOrder lists weekdays Monday-first for stable schedule rendering.
+var weekdayDisplayOrder = []time.Weekday{
+	time.Monday, time.Tuesday, time.Wednesday, time.Thursday,
+	time.Friday, time.Saturday, time.Sunday,
+}
+
+// formatSchedule renders the full weekly Allowed Hours schedule: an indented
+// "default" line plus one line per Per-Day Override (Monday-first), with
+// "(today)" appended to whichever line is in force for the given weekday — the
+// default line carries the marker when today has no override. Pure: the weekday
+// is passed in. Callers add their own header.
+func formatSchedule(def AllowedHours, byDay map[string]AllowedHours, today time.Weekday) string {
+	_, todayHasOverride := byDay[weekdayName(today)]
+
+	lines := []string{formatScheduleLine("default", def, !todayHasOverride)}
+	for _, wd := range weekdayDisplayOrder {
+		if oh, ok := byDay[weekdayName(wd)]; ok {
+			lines = append(lines, formatScheduleLine(weekdayName(wd), oh, wd == today))
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+func formatScheduleLine(label string, h AllowedHours, isToday bool) string {
+	line := fmt.Sprintf("  %s: %s - %s", label,
+		formatHour(h.Start, h.StartMinute), formatHour(h.End, h.EndMinute))
+	if isToday {
+		line += " (today)"
+	}
+	return line
+}
