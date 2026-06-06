@@ -22,6 +22,11 @@ RUN echo '#!/bin/bash' > /usr/bin/notify-send && chmod +x /usr/bin/notify-send
 # Create a fake PAM file for testing
 RUN mkdir -p /etc/pam.d && echo 'auth required pam_unix.so' > /etc/pam.d/gdm-password
 
+# Pre-seed fake piper voice files so setup skips the HuggingFace download
+RUN mkdir -p /var/lib/papabear/piper-voices && \
+    echo "fake" > /var/lib/papabear/piper-voices/en_US-lessac-medium.onnx && \
+    echo '{}' > /var/lib/papabear/piper-voices/en_US-lessac-medium.onnx.json
+
 COPY --from=build /papabear /usr/local/bin/papabear
 
 COPY test/docker/run-tests.sh /run-tests.sh
