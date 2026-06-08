@@ -104,11 +104,25 @@ func installPAMRule() error {
 	if err != nil {
 		return fmt.Errorf("reading %s: %w", pamService, err)
 	}
-	if strings.Contains(string(data), "papabear") {
-		return nil // already installed
-	}
-	// Prepend the rule before the first auth line
+
+	// Drop any leftover screentimectl rule: it points at a binary that the
+	// migration to papabear removes, and "auth required" would block all
+	// logins once pam_exec can no longer find it.
 	lines := strings.Split(string(data), "\n")
+	var filtered []string
+	for _, line := range lines {
+		if strings.Contains(line, "screentimectl") {
+			continue
+		}
+		filtered = append(filtered, line)
+	}
+	lines = filtered
+
+	if strings.Contains(strings.Join(lines, "\n"), "papabear") {
+		return os.WriteFile(pamService, []byte(strings.Join(lines, "\n")), 0644)
+	}
+
+	// Prepend the rule before the first auth line
 	var result []string
 	inserted := false
 	for _, line := range lines {
