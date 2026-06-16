@@ -253,11 +253,19 @@ func (m *SessionManager) SetTime(user string, minutes int) (UserTime, error) {
 	return m.store.GetUserTime(user, u.DailyLimitMinutes*60), nil
 }
 
-// LockUser terminates all sessions and locks the account. This is an explicit
-// admin action, so it is deliberately not tracked in accountLocked (which only
-// records automatic policy locks that pollUser may auto-undo).
+// LockUser terminates all sessions, locks the account, and resets remaining
+// time to zero. This is an explicit admin action, so it is deliberately not
+// tracked in accountLocked (which only records automatic policy locks that
+// pollUser may auto-undo).
 func (m *SessionManager) LockUser(user string) error {
 	log.Printf("session: locking %s. Reason: admin command", user)
+	u := m.cfg.getUser(user)
+	if u != nil {
+		m.store.SetRemainingTime(user, 0, u.DailyLimitMinutes*60)
+		if err := m.store.Save(); err != nil {
+			log.Printf("session: save after LockUser: %v", err)
+		}
+	}
 	return lockOutUserFunc(user, findUserSessionsFunc(user))
 }
 
